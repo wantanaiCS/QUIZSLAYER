@@ -1,0 +1,190 @@
+/* QuizSlayer — Global Styles */
+/* Google Fonts — must be first */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600&family=Press+Start+2P&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* === Base Reset === */
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    image-rendering: pixelated;
+  }
+
+  body {
+    @apply bg-qs-bg text-qs-text font-sans;
+    margin: 0;
+    min-height: 100vh;
+    overflow-x: hidden;
+    background: radial-gradient(ellipse at 20% 50%, rgba(108, 99, 255, 0.08) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 20%, rgba(156, 39, 176, 0.06) 0%, transparent 60%),
+                #0d0f1a;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-qs-surface;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-qs-border rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-qs-primary;
+  }
+}
+
+/* === Component Classes === */
+@layer components {
+  /* --- Buttons --- */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-qs font-semibold text-sm transition-all duration-200 cursor-pointer select-none;
+    @apply active:scale-95;
+  }
+  .btn-primary {
+    @apply btn bg-qs-primary text-white shadow-qs;
+    @apply hover:brightness-110 hover:shadow-qs-glow;
+  }
+  .btn-secondary {
+    @apply btn bg-qs-surface border border-qs-border text-qs-text;
+    @apply hover:border-qs-primary hover:text-qs-primary;
+  }
+  .btn-danger {
+    @apply btn bg-qs-danger text-white;
+    @apply hover:brightness-110 hover:shadow-danger-glow;
+  }
+  .btn-gold {
+    @apply btn shadow-gold-glow;
+    background: linear-gradient(135deg, #f4c842 0%, #ff9800 100%);
+    @apply text-gray-900 font-bold;
+    @apply hover:brightness-110;
+  }
+  .btn-pixel {
+    @apply font-pixel text-xs px-4 py-2 rounded-none border-2 border-qs-accent text-qs-accent;
+    @apply hover:bg-qs-accent hover:text-qs-bg transition-all duration-150;
+    image-rendering: pixelated;
+  }
+
+  /* --- Cards --- */
+  .card {
+    @apply bg-qs-card border border-qs-border rounded-qs shadow-card;
+  }
+  .card-hover {
+    @apply card transition-all duration-200;
+    @apply hover:border-qs-primary hover:shadow-qs hover:-translate-y-1;
+  }
+  .card-glass {
+    background: rgba(26, 30, 48, 0.7);
+    backdrop-filter: blur(12px);
+    @apply border border-qs-border rounded-qs-lg;
+  }
+
+  /* --- HP / Gauge Bars --- */
+  .bar-container {
+    @apply relative w-full h-3 rounded-full bg-qs-bg overflow-hidden;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .bar-fill {
+    @apply h-full rounded-full transition-all duration-300;
+    position: relative;
+  }
+  .bar-fill::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 40%;
+    background: rgba(255,255,255,0.2);
+    border-radius: inherit;
+  }
+  .hp-bar-high   { @apply bg-hp-high; }
+  .hp-bar-mid    { @apply bg-hp-mid; }
+  .hp-bar-low    { @apply bg-hp-low; }
+  .mana-bar {
+    background: linear-gradient(90deg, #4fc3f7, #9c27b0);
+    @apply shadow-[0_0_8px_rgba(79,195,247,0.5)];
+  }
+  .time-bar      { @apply bg-white/90; }
+
+  /* --- Battle UI --- */
+  .damage-number {
+    @apply font-pixel text-xs pointer-events-none select-none;
+    animation: damageFloat 1s ease-out forwards;
+  }
+  .damage-player   { @apply text-hp-low; }
+  .damage-monster  { @apply text-qs-accent; }
+
+  /* --- Quiz Answer Options --- */
+  .answer-option {
+    @apply card w-full text-left px-5 py-4 rounded-qs cursor-pointer transition-all duration-200;
+    @apply hover:border-qs-primary hover:bg-qs-surface hover:shadow-qs;
+    @apply active:scale-98;
+  }
+  .answer-option.correct {
+    @apply border-qs-success bg-green-900/20 text-qs-success;
+    box-shadow: 0 0 16px rgba(67, 217, 143, 0.3);
+  }
+  .answer-option.wrong {
+    @apply border-qs-danger bg-red-900/20 text-qs-danger;
+    box-shadow: 0 0 16px rgba(255, 71, 87, 0.3);
+  }
+  .answer-option.disabled {
+    @apply opacity-50 cursor-not-allowed pointer-events-none;
+  }
+
+  /* --- Stage Badge --- */
+  .stage-badge {
+    @apply inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold;
+  }
+
+  /* --- Streak Counter --- */
+  .streak-badge {
+    @apply inline-flex items-center gap-1 font-pixel text-xs;
+    @apply text-qs-accent;
+    text-shadow: 0 0 8px rgba(255, 217, 61, 0.6);
+  }
+
+  /* --- Pixel art rendering --- */
+  .pixel {
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+  }
+}
+
+/* === Keyframe Animations === */
+@keyframes damageFloat {
+  0%   { transform: translateY(0) scale(1); opacity: 1; }
+  70%  { transform: translateY(-40px) scale(1.2); opacity: 1; }
+  100% { transform: translateY(-60px) scale(0.8); opacity: 0; }
+}
+
+/* === Utilities === */
+@layer utilities {
+  .text-gradient {
+    background: linear-gradient(135deg, #6c63ff, #ff6b6b);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .text-gradient-gold {
+    background: linear-gradient(135deg, #f4c842, #ff9800);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .glow-primary {
+    filter: drop-shadow(0 0 8px rgba(108, 99, 255, 0.6));
+  }
+  .glow-gold {
+    filter: drop-shadow(0 0 8px rgba(244, 200, 66, 0.6));
+  }
+  .scale-98 {
+    transform: scale(0.98);
+  }
+}
