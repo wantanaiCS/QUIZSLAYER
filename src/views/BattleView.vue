@@ -101,6 +101,8 @@
       <!-- Bottom: Question Card -->
       <QuestionCard 
         :question="currentQuestion"
+        :questionNumber="currentQuestionNumber"
+        :totalQuestions="totalQuizQuestions"
         :cooldownLeft="battleStore.cooldownLeft"
         :maxCooldown="maxCooldown"
         :disabled="battleStore.phase !== 'player_turn' || showResult"
@@ -160,6 +162,7 @@ const showResult = ref(false)
 const selectedIndex = ref(null)
 const hiddenOptions = ref([])
 let mechanicsTimer = null
+let rageStageIds = new Set()
 
 const difficulties = [
   { key: 'easy',   label: 'Easy',   emoji: '🟢', desc: 'ไม่มี Cooldown, HP เยอะ — เหมาะสำหรับมือใหม่' },
@@ -170,6 +173,14 @@ const difficulties = [
 const currentStageInfo = computed(() => STAGES[battleStore.currentStageId - 1] || STAGES[0])
 const currentQuestion  = computed(() => battleStore.currentQuestion)
 const maxCooldown      = computed(() => getCooldownSeconds(battleStore.difficulty) || 0)
+const totalQuizQuestions = computed(() => battleStore.quizSet?.questions?.length ?? 0)
+const currentQuestionNumber = computed(() => {
+  const questions = battleStore.quizSet?.questions ?? []
+  if (!questions.length) return 0
+
+  const previousStageCount = questions.filter(q => q.stage < battleStore.currentStageId).length
+  return Math.min(questions.length, previousStageCount + battleStore.currentQIndex + 1)
+})
 
 // Stage Mechanics: Blind & Vanishing Choices
 watch(() => battleStore.currentQuestion, (newQ) => {
@@ -244,6 +255,31 @@ watch(() => battleStore.phase, async (newPhase, oldPhase) => {
   }
 })
 
+watch(() => battleStore.damageEventId, () => {
+  const damage = battleStore.lastDamageTaken
+  if (!damage || battleStore.phase === 'idle') return
+  const scene = gameInstance?.scene.getScene('BattleScene')
+  if (!scene) return
+
+  scene.events.emit('monsterAttack')
+  setTimeout(() => {
+    scene.events.emit('playerDamage', damage)
+  }, 180)
+})
+
+watch(() => battleStore.monsterHP, (hp, previousHp) => {
+  if (!gameInstance || battleStore.phase !== 'player_turn') return
+  if (!previousHp || hp <= 0 || hp >= previousHp) return
+  if (hp > Math.ceil(battleStore.monsterMaxHP * 0.5)) return
+  if (rageStageIds.has(battleStore.currentStageId)) return
+
+  rageStageIds.add(battleStore.currentStageId)
+  const scene = gameInstance.scene.getScene('BattleScene')
+  setTimeout(() => {
+    scene?.events.emit('monsterRage')
+  }, 550)
+})
+
 watch(() => battleStore.phase, (newPhase) => {
   if (newPhase === 'stage_clear' && battleStore.currentStageId < 5) {
     setTimeout(() => {
@@ -251,6 +287,22 @@ watch(() => battleStore.phase, (newPhase) => {
     }, 900)
   }
 })
+
+watch(() => battleStore.currentStageId, (stageId) => {
+  emitStageChanged(stageId)
+})
+
+function emitStageChanged(stageId, attempt = 0) {
+  const scene = gameInstance?.scene.getScene('BattleScene')
+  if (scene?.scene?.isActive()) {
+    scene.events.emit('stageChanged', stageId)
+    return
+  }
+
+  if (attempt < 6) {
+    setTimeout(() => emitStageChanged(stageId, attempt + 1), 50)
+  }
+}
 
 function initPhaser() {
   if (gameInstance) {
@@ -278,9 +330,11 @@ async function startBattle() {
   step.value = 3
   showResult.value = false
   selectedIndex.value = null
+  rageStageIds = new Set()
   
   nextTick(() => {
     initPhaser()
+    emitStageChanged(battleStore.currentStageId)
   })
 }
 
@@ -291,6 +345,7 @@ function reset() {
   battleStore.resetBattle()
   selectedSet.value = null
   selectedDiff.value = 'normal'
+  rageStageIds = new Set()
   if (gameInstance) {
     gameInstance.destroy(true)
     gameInstance = null

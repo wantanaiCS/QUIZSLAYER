@@ -9,6 +9,9 @@
 
     <div class="flex justify-between items-start mb-4">
       <div class="font-bold text-base lg:text-lg text-qs-text leading-relaxed flex-1 pr-4">
+        <div v-if="totalQuestions > 0" class="text-xs font-pixel text-qs-accent mb-2">
+          {{ questionNumber }}/{{ totalQuestions }}
+        </div>
         {{ question?.question_text || 'Loading question...' }}
       </div>
       <div v-if="cooldownLeft > 0" class="text-xl font-pixel text-qs-accent">
@@ -45,6 +48,8 @@ import { computed } from 'vue'
 
 const props = defineProps({
   question: { type: Object, default: null },
+  questionNumber: { type: Number, default: 0 },
+  totalQuestions: { type: Number, default: 0 },
   cooldownLeft: { type: Number, default: 0 },
   maxCooldown: { type: Number, default: 10 },
   disabled: { type: Boolean, default: false },

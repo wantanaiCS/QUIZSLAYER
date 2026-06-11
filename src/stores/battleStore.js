@@ -58,6 +58,8 @@ export const useBattleStore = defineStore('battle', () => {
   const phase   = ref('idle')    // 'idle' | 'player_turn' | 'monster_turn' | 'stage_clear' | 'game_over' | 'victory'
   const result  = ref(null)      // 'win' | 'lose' | null
   const lastAnswerResult = ref(null) // 'correct' | 'wrong' | null
+  const lastDamageTaken = ref(0)
+  const damageEventId = ref(0)
 
   const stageConfig = computed(() => getStageConfig(currentStageId.value))
 
@@ -134,6 +136,7 @@ export const useBattleStore = defineStore('battle', () => {
     monsterMaxHP.value = monHP
     monsterHP.value    = monHP
     lastAnswerResult.value = null
+    lastDamageTaken.value = 0
   }
 
   /**
@@ -161,10 +164,11 @@ export const useBattleStore = defineStore('battle', () => {
     } else {
       streak.value = 0
       const dmg = calcMonsterDamage(difficulty.value)
+      lastDamageTaken.value = dmg
+      damageEventId.value++
       playerHP.value = Math.max(0, playerHP.value - dmg)
     }
 
-    currentQIndex.value++
     playerBar.value  = 0
     monsterBar.value = 0
 
@@ -175,6 +179,9 @@ export const useBattleStore = defineStore('battle', () => {
       phase.value  = 'game_over'
       result.value = 'lose'
     } else {
+      currentQIndex.value = stageQuestions.value.length
+        ? (currentQIndex.value + 1) % stageQuestions.value.length
+        : 0
       phase.value = 'player_turn'
     }
   }
@@ -184,6 +191,8 @@ export const useBattleStore = defineStore('battle', () => {
    */
   function monsterAttack() {
     const dmg = calcMonsterDamage(difficulty.value)
+    lastDamageTaken.value = dmg
+    damageEventId.value++
     playerHP.value = Math.max(0, playerHP.value - dmg)
     streak.value = 0
     monsterBar.value = 0
@@ -215,9 +224,16 @@ export const useBattleStore = defineStore('battle', () => {
   }
 
   function nextStage() {
-    if (currentStageId.value < 5) {
-      loadStage(currentStageId.value + 1)
+    const nextAvailableStage = [2, 3, 4, 5]
+      .filter(stageId => stageId > currentStageId.value)
+      .find(stageId => quizSet.value?.questions.some(q => q.stage === stageId))
+
+    if (nextAvailableStage) {
+      loadStage(nextAvailableStage)
       phase.value = 'player_turn'
+    } else {
+      phase.value = 'victory'
+      result.value = 'win'
     }
   }
 
@@ -260,6 +276,8 @@ export const useBattleStore = defineStore('battle', () => {
     streak, skillGauge, skillReady, playerBarSpeed,
     stageQuestions, currentQIndex, currentQuestion, questionsInStage,
     phase, result, lastAnswerResult, stageConfig,
+    lastDamageTaken,
+    damageEventId,
     score, coinsEarned, monstersCleared, totalCorrect, totalAnswered,
     // Actions
     startBattle, loadStage, submitAnswer, monsterAttack,

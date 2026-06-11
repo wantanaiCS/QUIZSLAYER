@@ -3,6 +3,8 @@ import { ref, computed } from 'vue'
 import { supabase, isMockMode } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 
+const MOCK_STORAGE_KEY = 'quizslayer:mock-quiz-sets'
+
 const MOCK_QUESTIONS = Array.from({ length: 20 }, (_, index) => {
   const number = index + 1
   const left = number + 2
@@ -17,6 +19,61 @@ const MOCK_QUESTIONS = Array.from({ length: 20 }, (_, index) => {
     explanation: `${left} + ${right} = ${answer}`,
   }
 })
+
+const MOCK_BATTLE_QUESTIONS = [
+  ['Vue ใช้แนวคิดหลักข้อใดในการแสดงผล UI แบบตอบสนองต่อข้อมูล?', ['Reactivity', 'Polling', 'Manual DOM only', 'SQL trigger'], 'Vue ใช้ระบบ reactivity เพื่ออัปเดต UI เมื่อ state เปลี่ยน'],
+  ['Pinia ในโปรเจกต์นี้มีหน้าที่หลักอะไร?', ['จัดการ state ของแอป', 'สร้างฐานข้อมูล', 'แปลงรูปภาพ', 'รัน web server'], 'Pinia เป็น state management ของ Vue'],
+  ['ไฟล์ใดมักใช้กำหนด route ของ Vue Router?', ['src/router/index.js', 'package-lock.json', 'favicon.svg', 'postcss.config.js'], 'โปรเจกต์นี้กำหนด routes ไว้ใน src/router/index.js'],
+  ['Vite เด่นเรื่องใดในงาน frontend development?', ['dev server และ build ที่รวดเร็ว', 'เป็นฐานข้อมูล NoSQL', 'เป็นระบบ login', 'เป็น game engine'], 'Vite เป็น build tool และ dev server ที่เร็ว'],
+  ['ด่านที่ 2 ของ QuizSlayer เพิ่มกลไกใดกับตัวเลือกคำตอบ?', ['สลับตำแหน่งตัวเลือก', 'ซ่อนคำถามทั้งหมด', 'ลบคะแนนทันที', 'หยุดเกมถาวร'], 'Stage 2 ใช้ mechanics shuffle_options'],
+  ['คำว่า component ใน Vue หมายถึงอะไร?', ['ส่วน UI ที่นำกลับมาใช้ซ้ำได้', 'รหัสผ่านผู้ใช้', 'ตารางฐานข้อมูล', 'คำสั่ง build'], 'Component คือหน่วย UI ที่ประกอบกันเป็นหน้าเว็บ'],
+  ['Tailwind class `w-full` หมายถึงค่า CSS ใด?', ['width: 100%;', 'width: auto;', 'width: 100vw;', 'width: fit-content;'], '`w-full` เท่ากับ width: 100%'],
+  ['การใช้ computed ใน Vue เหมาะกับกรณีใด?', ['คำนวณค่าจาก state อื่น', 'โหลดไฟล์ภาพเท่านั้น', 'ลบ node_modules', 'เปิด port server'], 'computed ใช้สร้างค่าที่ derive จาก reactive state'],
+  ['Phaser ในโปรเจกต์นี้ใช้ทำอะไร?', ['เรนเดอร์ฉากต่อสู้บน canvas', 'เชื่อมต่อ Supabase', 'จัด route', 'จัด format CSS'], 'Phaser เป็น game engine สำหรับฉาก battle'],
+  ['ค่า correct_index ในชุดข้อสอบเริ่มนับจากเลขใด?', ['0', '1', '2', '4'], 'ระบบใช้ index แบบ 0-based'],
+  ['ถ้าผู้เล่นตอบถูก ระบบ battle จะทำอะไรกับมอนสเตอร์?', ['ลด HP มอนสเตอร์', 'เพิ่ม HP มอนสเตอร์', 'รีเซ็ตข้อสอบ', 'ออกจากระบบ'], 'ตอบถูกจะคำนวณ damage แล้วลด HP ของมอนสเตอร์'],
+  ['Supabase mock mode ถูกใช้เมื่อไม่มีค่า environment ใด?', ['VITE_SUPABASE_URL', 'NODE_ENV', 'PORT', 'BASE_URL'], 'isMockMode ตรวจจากการไม่มี VITE_SUPABASE_URL'],
+  ['ด่านที่ 4 มีกลไก blind ส่งผลอย่างไร?', ['ซ่อนตัวเลือกหลังเวลาสั้น ๆ', 'เพิ่มจำนวนตัวเลือก', 'ลบคำถาม', 'เพิ่ม coin ทุกวินาที'], 'blind จะซ่อนตัวเลือกหลังผ่านไป 3 วินาที'],
+  ['การ import ข้อสอบจาก AI ต้องส่งข้อมูลรูปแบบใด?', ['JSON array', 'ไฟล์ ZIP เท่านั้น', 'HTML table', 'รูปภาพ PNG'], 'หน้า generator รับ JSON array ของคำถาม'],
+  ['ในระบบนี้ 20 ข้อถูกแบ่งเป็น 5 ด่าน ด่านละกี่ข้อ?', ['4 ข้อ', '2 ข้อ', '5 ข้อ', '10 ข้อ'], '20 หาร 5 ได้ด่านละ 4 ข้อ'],
+  ['ปุ่ม Import & เล่นเลย หลัง import สำเร็จจะพาผู้ใช้ไปหน้าใด?', ['Battle', 'Login', 'History', 'Profile'], 'หลัง import สำเร็จ router จะ push ไปหน้า battle'],
+  ['ด่านสุดท้ายมี mechanic ใดที่ทำให้ตัวเลือกผิดบางข้อหายไป?', ['vanishing_choices', 'shuffle_options', 'stun_bar', 'grassland'], 'vanishing_choices ค่อย ๆ ซ่อนตัวเลือกผิด'],
+  ['คำสั่ง `npm run build` ใช้ตรวจอะไรได้เป็นหลัก?', ['ว่าโปรเจกต์ build ผ่านหรือไม่', 'ว่าผู้ใช้ตอบถูกหรือไม่', 'ว่าสกุลเงินเพิ่มไหม', 'ว่า Supabase มีเงินจริงไหม'], 'build ช่วยจับ error ระดับ compile/bundle'],
+  ['เมื่อผู้เล่นเคลียร์ด่านที่ 5 สำเร็จ phase จะเป็นค่าใด?', ['victory', 'idle', 'stage_clear', 'monster_turn'], 'handleStageClear ตั้ง phase เป็น victory เมื่อผ่านด่าน 5'],
+  ['ข้อใดเป็นเหตุผลที่ต้องมี mock quiz set?', ['ทดสอบ flow เกมได้โดยไม่ต้องพึ่งฐานข้อมูลจริง', 'แทนที่ source code ทั้งหมด', 'ปิดระบบ login ถาวร', 'ลบหน้า generator'], 'Mock data ช่วยทดสอบระบบได้ในเครื่องทันที'],
+].map(([question_text, options, explanation], index) => ({
+  id: `mock-battle-question-${index + 1}`,
+  stage: Math.floor(index / 4) + 1,
+  question_text,
+  options,
+  correct_index: 0,
+  explanation,
+}))
+
+function readStoredMockSets() {
+  try {
+    const raw = localStorage.getItem(MOCK_STORAGE_KEY)
+    const sets = raw ? JSON.parse(raw) : []
+    return Array.isArray(sets) ? sets : []
+  } catch {
+    return []
+  }
+}
+
+function writeStoredMockSets(sets) {
+  try {
+    localStorage.setItem(MOCK_STORAGE_KEY, JSON.stringify(sets))
+  } catch {
+    // Ignore storage failures in mock mode so quiz import still works in-memory.
+  }
+}
+
+function toQuizSetSummary(set) {
+  return {
+    ...set,
+    questions: [{ count: set.questions?.length ?? 0 }],
+  }
+}
 
 export const useQuizStore = defineStore('quiz', () => {
   const quizSets   = ref([])
@@ -33,12 +90,16 @@ export const useQuizStore = defineStore('quiz', () => {
   async function fetchPublicSets() {
     loading.value = true
     if (isMockMode) {
+      const memoryMockSets = quizSets.value.filter(set => set.id !== 'mock-1')
+      const storedMockSets = readStoredMockSets().map(toQuizSetSummary)
+      const importedMockSets = [...memoryMockSets, ...storedMockSets]
+        .filter((set, index, sets) => sets.findIndex(s => s.id === set.id) === index)
       quizSets.value = [{
         id: 'mock-1',
         title: 'Mock Battle Test: 20 Questions',
         is_public: true,
         questions: [{ count: 20 }]
-      }]
+      }, ...importedMockSets]
       loading.value = false
       return
     }
@@ -57,6 +118,7 @@ export const useQuizStore = defineStore('quiz', () => {
   async function fetchMySets() {
     const authStore = useAuthStore()
     if (!authStore.user) return
+    if (isMockMode) return
     loading.value = true
     const { data, error: err } = await supabase
       .from('quiz_sets')
@@ -90,10 +152,25 @@ export const useQuizStore = defineStore('quiz', () => {
           { stage: 5, question_text: 'Phaser 3 ใน QuizSlayer ใช้ทำอะไร?', options: ['สร้าง Canvas แสดงฉากต่อสู้', 'จัดการ Database', 'ทำ API Server', 'ทำระบบ Login'], correct_index: 0, explanation: 'Phaser 3 เป็น Game Engine ที่เราใช้เรนเดอร์ภาพฉากต่อสู้' }
         ]
       }
-      mockData.questions = MOCK_QUESTIONS
+      mockData.questions = MOCK_BATTLE_QUESTIONS
       activeSet.value = mockData
       loading.value = false
       return mockData
+    }
+
+    if (isMockMode) {
+      const mockSet = activeSet.value?.id === quizSetId
+        ? activeSet.value
+        : quizSets.value.find(set => set.id === quizSetId)
+      if (mockSet?.questions?.[0]?.count && activeSet.value?.id !== quizSetId) {
+        const storedSet = readStoredMockSets().find(set => set.id === quizSetId)
+        activeSet.value = storedSet ?? null
+        loading.value = false
+        return activeSet.value
+      }
+      activeSet.value = mockSet ?? null
+      loading.value = false
+      return activeSet.value
     }
 
     const { data, error: err } = await supabase
@@ -143,7 +220,9 @@ export const useQuizStore = defineStore('quiz', () => {
         author_id: authStore.user.id,
         questions: formattedQuestions
       }
-      quizSets.value.push({ ...newMockSet, questions: [{ count: questions.length }] })
+      const storedSets = readStoredMockSets().filter(set => set.id !== mockId)
+      writeStoredMockSets([newMockSet, ...storedSets])
+      quizSets.value.push(toQuizSetSummary(newMockSet))
       activeSet.value = newMockSet
       loading.value = false
       return newMockSet
