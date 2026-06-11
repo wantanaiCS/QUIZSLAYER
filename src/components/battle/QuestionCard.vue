@@ -1,5 +1,5 @@
 <template>
-  <div class="card p-6 relative overflow-hidden">
+  <div class="card p-4 lg:p-5 relative overflow-hidden">
     <!-- Cooldown bar top edge -->
     <div 
       v-if="cooldownLeft > 0 && maxCooldown > 0"
@@ -7,8 +7,8 @@
       :style="{ width: (cooldownLeft / maxCooldown) * 100 + '%' }"
     ></div>
 
-    <div class="flex justify-between items-start mb-6">
-      <div class="font-bold text-lg text-qs-text leading-relaxed flex-1 pr-4">
+    <div class="flex justify-between items-start mb-4">
+      <div class="font-bold text-base lg:text-lg text-qs-text leading-relaxed flex-1 pr-4">
         {{ question?.question_text || 'Loading question...' }}
       </div>
       <div v-if="cooldownLeft > 0" class="text-xl font-pixel text-qs-accent">
@@ -16,11 +16,11 @@
       </div>
     </div>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
       <button
         v-for="(opt, idx) in optionsToRender"
         :key="idx"
-        class="answer-option flex gap-3"
+        class="answer-option flex gap-3 !px-4 !py-3"
         :class="{
           'correct': showResult && idx === question.correct_index,
           'wrong': showResult && selectedIndex === idx && idx !== question.correct_index,

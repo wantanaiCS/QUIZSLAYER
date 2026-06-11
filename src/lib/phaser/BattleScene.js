@@ -56,13 +56,13 @@ export class BattleScene extends Phaser.Scene {
     this.add.image(240, 135, 'bg_placeholder')
 
     // Add Player (Left side)
-    this.player = this.add.sprite(100, 180, 'soldier-idle')
-      .setScale(1.5)
+    this.player = this.add.sprite(105, 175, 'soldier-idle')
+      .setScale(5)
       .play('soldier-idle')
     
     // Add Monster (Right side)
-    this.monster = this.add.sprite(380, 180, 'orc-idle')
-      .setScale(1.5)
+    this.monster = this.add.sprite(375, 175, 'orc-idle')
+      .setScale(5)
       .setFlipX(true)
       .play('orc-idle')
 

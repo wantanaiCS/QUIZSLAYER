@@ -1,5 +1,5 @@
 <template>
-  <div class="max-w-6xl mx-auto px-4 py-6 md:py-12">
+  <div class="battle-page max-w-6xl mx-auto px-4 py-6 md:py-12" :class="{ 'is-playing': step === 3 }">
     <div v-if="step < 3" class="text-center mb-12">
       <h1 class="text-3xl font-bold text-qs-text mb-2">⚔️ Battle Arena</h1>
       <p class="text-qs-muted">เลือกชุดข้อสอบและโหมดความยาก แล้วลงสนาม!</p>
@@ -67,7 +67,7 @@
     </div>
 
     <!-- Step 3: Battle Screen -->
-    <div v-if="step === 3" class="animate-fade-in max-w-3xl mx-auto">
+    <div v-if="step === 3" class="battle-layout animate-fade-in max-w-3xl mx-auto">
       <!-- Top: HP Bars -->
       <div class="flex justify-between items-end mb-2 px-2">
         <div>
@@ -81,8 +81,8 @@
       </div>
 
       <!-- Middle: Phaser + Time Bars -->
-      <div class="card p-0 overflow-hidden mb-4 relative shadow-qs border-2 border-qs-border bg-qs-surface">
-        <div id="phaser-container" class="w-full aspect-video"></div>
+      <div class="battle-canvas card p-0 overflow-hidden mb-4 relative shadow-qs border-2 border-qs-border bg-qs-surface">
+        <div id="phaser-container" class="w-full h-full"></div>
         
         <!-- Player Time Bar -->
         <BarTime :progress="battleStore.playerBar" class="absolute bottom-1 left-0 right-0 z-10" />
@@ -339,3 +339,53 @@ onUnmounted(() => {
   }
 })
 </script>
+
+<style scoped>
+.battle-page.is-playing {
+  width: 100%;
+  max-width: none;
+  min-height: calc(100vh - 5rem);
+  padding: 0.75rem 1.5rem;
+}
+
+.battle-page.is-playing .battle-layout {
+  max-width: none;
+  min-height: calc(100vh - 6.5rem);
+  display: grid;
+  grid-template-columns: minmax(420px, 0.9fr) minmax(440px, 1.1fr);
+  grid-template-rows: auto auto auto;
+  align-content: center;
+  column-gap: 1rem;
+}
+
+.battle-page.is-playing .battle-layout > :nth-child(1),
+.battle-page.is-playing .battle-layout > :nth-child(2),
+.battle-page.is-playing .battle-layout > :nth-child(3) {
+  grid-column: 1;
+}
+
+.battle-page.is-playing .battle-layout > :nth-child(4) {
+  grid-column: 2;
+  grid-row: 1 / span 3;
+  align-self: center;
+}
+
+.battle-canvas {
+  height: clamp(240px, 42vh, 390px);
+}
+
+@media (max-width: 1023px) {
+  .battle-page.is-playing {
+    padding: 0.75rem 1rem;
+  }
+
+  .battle-page.is-playing .battle-layout {
+    min-height: auto;
+    display: block;
+  }
+
+  .battle-canvas {
+    height: clamp(200px, 32vh, 280px);
+  }
+}
+</style>

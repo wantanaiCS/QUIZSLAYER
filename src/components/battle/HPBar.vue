@@ -1,9 +1,9 @@
 <template>
   <div class="flex items-center gap-2">
-    <div class="font-bold text-sm min-w-[30px] text-right" :class="colorClass">
+    <div class="font-bold text-xs min-w-[24px] text-right" :class="colorClass">
       {{ hp }}
     </div>
-    <div class="bar-container h-4 w-48">
+    <div class="bar-container h-3 w-32 sm:w-40">
       <div 
         class="bar-fill" 
         :class="barClass" 
