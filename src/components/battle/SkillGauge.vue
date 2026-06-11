@@ -12,12 +12,18 @@
         :style="{ width: gauge + '%' }"
       ></div>
     </div>
+    <button v-if="ready !== 'none'" class="btn-gold !px-3 !py-1.5 text-xs" @click="$emit('use-skill')">
+      {{ ready === 'ultimate' ? 'ใช้ Ultimate' : 'ใช้ Skill' }}
+    </button>
   </div>
 </template>
 
 <script setup>
 defineProps({
   streak: { type: Number, required: true },
-  gauge: { type: Number, required: true } // 0 to 100
+  gauge: { type: Number, required: true },
+  ready: { type: String, default: 'none' }
 })
+
+defineEmits(['use-skill'])
 </script>

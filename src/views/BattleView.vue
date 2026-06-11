@@ -90,7 +90,12 @@
 
       <div class="flex justify-between items-center mb-6 px-2">
         <button class="btn-secondary text-xs px-3 py-1" @click="step = 1; reset()">← หนี (ยอมแพ้)</button>
-        <SkillGauge :streak="battleStore.streak" :gauge="battleStore.skillGauge" />
+        <SkillGauge
+          :streak="battleStore.streak"
+          :gauge="battleStore.skillGauge"
+          :ready="battleStore.skillReady"
+          @use-skill="handleUseSkill"
+        />
       </div>
 
       <!-- Bottom: Question Card -->
@@ -239,6 +244,14 @@ watch(() => battleStore.phase, async (newPhase, oldPhase) => {
   }
 })
 
+watch(() => battleStore.phase, (newPhase) => {
+  if (newPhase === 'stage_clear' && battleStore.currentStageId < 5) {
+    setTimeout(() => {
+      battleStore.nextStage()
+    }, 900)
+  }
+})
+
 function initPhaser() {
   if (gameInstance) {
     gameInstance.destroy(true)
@@ -322,6 +335,19 @@ async function handleAnswer(idx) {
     showResult.value = false
     selectedIndex.value = null
   }, 1500)
+}
+
+function handleUseSkill() {
+  const scene = gameInstance?.scene.getScene('BattleScene')
+  const result = battleStore.useSkill()
+  if (!result || !scene) return
+
+  scene.events.emit('playerAttack')
+  if (battleStore.monsterHP <= 0) {
+    scene.events.emit('monsterDeath', result.damage)
+  } else {
+    scene.events.emit('monsterDamage', result.damage)
+  }
 }
 
 onMounted(() => {

@@ -3,6 +3,21 @@ import { ref, computed } from 'vue'
 import { supabase, isMockMode } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 
+const MOCK_QUESTIONS = Array.from({ length: 20 }, (_, index) => {
+  const number = index + 1
+  const left = number + 2
+  const right = number + 3
+  const answer = left + right
+  return {
+    id: `mock-question-${number}`,
+    stage: Math.floor(index / 4) + 1,
+    question_text: `ข้อ ${number}: ${left} + ${right} เท่ากับเท่าไร?`,
+    options: [String(answer), String(answer + 1), String(answer - 1), String(answer + 2)],
+    correct_index: 0,
+    explanation: `${left} + ${right} = ${answer}`,
+  }
+})
+
 export const useQuizStore = defineStore('quiz', () => {
   const quizSets   = ref([])
   const activeSet  = ref(null)
@@ -20,9 +35,9 @@ export const useQuizStore = defineStore('quiz', () => {
     if (isMockMode) {
       quizSets.value = [{
         id: 'mock-1',
-        title: 'Mock: Vue & Vite 101',
+        title: 'Mock Battle Test: 20 Questions',
         is_public: true,
-        questions: [{ count: 5 }]
+        questions: [{ count: 20 }]
       }]
       loading.value = false
       return
@@ -66,7 +81,7 @@ export const useQuizStore = defineStore('quiz', () => {
     if (isMockMode && quizSetId === 'mock-1') {
       const mockData = {
         id: 'mock-1',
-        title: 'Mock: Vue & Vite 101',
+        title: 'Mock Battle Test: 20 Questions',
         questions: [
           { stage: 1, question_text: 'Vue ย่อมาจากอะไร?', options: ['View', 'Vite', 'Vendor', 'Value'], correct_index: 0, explanation: 'Vue อ่านพ้องเสียงกับคำว่า View' },
           { stage: 2, question_text: 'Vite คืออะไร?', options: ['Build tool ที่เร็วมาก', 'Framework แบบ Next.js', 'Database ฐานข้อมูล', 'Browser ใหม่ของ Google'], correct_index: 0, explanation: 'Vite เป็น frontend build tool รุ่นใหม่' },
@@ -75,6 +90,7 @@ export const useQuizStore = defineStore('quiz', () => {
           { stage: 5, question_text: 'Phaser 3 ใน QuizSlayer ใช้ทำอะไร?', options: ['สร้าง Canvas แสดงฉากต่อสู้', 'จัดการ Database', 'ทำ API Server', 'ทำระบบ Login'], correct_index: 0, explanation: 'Phaser 3 เป็น Game Engine ที่เราใช้เรนเดอร์ภาพฉากต่อสู้' }
         ]
       }
+      mockData.questions = MOCK_QUESTIONS
       activeSet.value = mockData
       loading.value = false
       return mockData
@@ -99,6 +115,13 @@ export const useQuizStore = defineStore('quiz', () => {
   async function importFromJSON(title, questions) {
     const authStore = useAuthStore()
     if (!authStore.user) return null
+    if (!Array.isArray(questions) || questions.length === 0) throw new Error('JSON must be a non-empty array')
+    questions.forEach((q, index) => {
+      if (typeof q.question !== 'string' || !Array.isArray(q.options) || q.options.length !== 4
+        || !Number.isInteger(q.correct_index) || q.correct_index < 0 || q.correct_index > 3) {
+        throw new Error(`Invalid question at index ${index}`)
+      }
+    })
     loading.value = true
 
     // Assign stages evenly (5 stages)

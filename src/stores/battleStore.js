@@ -222,8 +222,10 @@ export const useBattleStore = defineStore('battle', () => {
   }
 
   function useSkill() {
-    if (skillReady.value === 'none') return
-    if (skillReady.value === 'ultimate') {
+    const skill = skillReady.value
+    if (skill === 'none' || phase.value !== 'player_turn') return null
+    const previousHP = monsterHP.value
+    if (skill === 'ultimate') {
       monsterHP.value  = Math.max(0, monsterHP.value - Math.ceil(monsterMaxHP.value * 0.4))
       skillGauge.value = 0
       streak.value     = 0
@@ -232,6 +234,7 @@ export const useBattleStore = defineStore('battle', () => {
       skillGauge.value = Math.max(0, skillGauge.value - 40)
     }
     if (monsterHP.value <= 0) handleStageClear()
+    return { skill, damage: previousHP - monsterHP.value }
   }
 
   function resetBattle() {
