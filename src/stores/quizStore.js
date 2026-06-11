@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { supabase } from '@/lib/supabase'
+import { supabase, isMockMode } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
 
 export const useQuizStore = defineStore('quiz', () => {
@@ -17,6 +17,17 @@ export const useQuizStore = defineStore('quiz', () => {
 
   async function fetchPublicSets() {
     loading.value = true
+    if (isMockMode) {
+      quizSets.value = [{
+        id: 'mock-1',
+        title: 'Mock: Vue & Vite 101',
+        is_public: true,
+        questions: [{ count: 5 }]
+      }]
+      loading.value = false
+      return
+    }
+
     const { data, error: err } = await supabase
       .from('quiz_sets')
       .select('*, questions(count)')
@@ -35,7 +46,7 @@ export const useQuizStore = defineStore('quiz', () => {
     const { data, error: err } = await supabase
       .from('quiz_sets')
       .select('*, questions(count)')
-      .eq('owner_id', authStore.user.id)
+      .eq('author_id', authStore.user.id)
       .order('created_at', { ascending: false })
     if (!err) {
       // Merge with existing, replace owned sets
@@ -52,6 +63,23 @@ export const useQuizStore = defineStore('quiz', () => {
 
   async function loadQuizSet(quizSetId) {
     loading.value = true
+    if (isMockMode && quizSetId === 'mock-1') {
+      const mockData = {
+        id: 'mock-1',
+        title: 'Mock: Vue & Vite 101',
+        questions: [
+          { stage: 1, question_text: 'Vue ย่อมาจากอะไร?', options: ['View', 'Vite', 'Vendor', 'Value'], correct_index: 0, explanation: 'Vue อ่านพ้องเสียงกับคำว่า View' },
+          { stage: 2, question_text: 'Vite คืออะไร?', options: ['Build tool ที่เร็วมาก', 'Framework แบบ Next.js', 'Database ฐานข้อมูล', 'Browser ใหม่ของ Google'], correct_index: 0, explanation: 'Vite เป็น frontend build tool รุ่นใหม่' },
+          { stage: 3, question_text: 'Pinia ใช้ทำอะไรในโปรเจกต์นี้?', options: ['State Management', 'ทำ Routing', 'จัด Styling หน้าเว็บ', 'ทำ Unit Test'], correct_index: 0, explanation: 'Pinia คือ State Management อย่างเป็นทางการของ Vue (แทน Vuex)' },
+          { stage: 4, question_text: 'ใน Tailwind CSS คำสั่ง `w-full` มีค่าเท่ากับอะไร?', options: ['width: 100%;', 'width: auto;', 'width: 100vw;', 'width: max-content;'], correct_index: 0, explanation: '`w-full` จะตั้งค่า CSS เป็น `width: 100%;`' },
+          { stage: 5, question_text: 'Phaser 3 ใน QuizSlayer ใช้ทำอะไร?', options: ['สร้าง Canvas แสดงฉากต่อสู้', 'จัดการ Database', 'ทำ API Server', 'ทำระบบ Login'], correct_index: 0, explanation: 'Phaser 3 เป็น Game Engine ที่เราใช้เรนเดอร์ภาพฉากต่อสู้' }
+        ]
+      }
+      activeSet.value = mockData
+      loading.value = false
+      return mockData
+    }
+
     const { data, error: err } = await supabase
       .from('quiz_sets')
       .select('*, questions(*)')
@@ -67,34 +95,48 @@ export const useQuizStore = defineStore('quiz', () => {
    * Import a JSON array of questions (from AI generator) as a new quiz set
    * @param {string} title
    * @param {Array} questions  - raw AI output array
-   * @param {string} source   - 'topic_input' | 'document_upload'
    */
-  async function importFromJSON(title, questions, source = 'topic_input') {
+  async function importFromJSON(title, questions) {
     const authStore = useAuthStore()
     if (!authStore.user) return null
     loading.value = true
 
+    // Assign stages evenly (5 stages)
+    const perStage = Math.max(1, Math.ceil(questions.length / 5))
+    const formattedQuestions = questions.map((q, i) => ({
+      stage:         Math.min(5, Math.floor(i / perStage) + 1),
+      question_text: q.question,
+      options:       q.options,
+      correct_index: q.correct_index,
+      explanation:   q.explanation ?? null,
+    }))
+
+    if (isMockMode) {
+      const mockId = 'mock-' + Date.now()
+      const newMockSet = {
+        id: mockId,
+        title,
+        is_public: false,
+        author_id: authStore.user.id,
+        questions: formattedQuestions
+      }
+      quizSets.value.push({ ...newMockSet, questions: [{ count: questions.length }] })
+      activeSet.value = newMockSet
+      loading.value = false
+      return newMockSet
+    }
+
     // Create quiz_set first
     const { data: setData, error: setErr } = await supabase
       .from('quiz_sets')
-      .insert({ title, source, owner_id: authStore.user.id, is_public: false })
+      .insert({ title, author_id: authStore.user.id, is_public: false })
       .select()
       .single()
     if (setErr) { error.value = setErr.message; loading.value = false; return null }
 
-    // Assign stages evenly (5 stages)
-    const perStage = Math.max(1, Math.ceil(questions.length / 5))
-    const monsterNames = ['Slime', 'Goblin', 'Orc', 'Dark Mage', 'Boss']
-
-    const rows = questions.map((q, i) => ({
-      quiz_set_id:   setData.id,
-      stage:         Math.min(5, Math.floor(i / perStage) + 1),
-      monster_name:  monsterNames[Math.min(4, Math.floor(i / perStage))],
-      question_text: q.question,
-      options:       q.options,
-      correct_index: q.correct_index,
-      difficulty:    q.difficulty ?? 'normal',
-      explanation:   q.explanation ?? null,
+    const rows = formattedQuestions.map(q => ({
+      quiz_set_id: setData.id,
+      ...q
     }))
 
     const { error: qErr } = await supabase.from('questions').insert(rows)

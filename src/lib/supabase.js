@@ -1,12 +1,13 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl  = import.meta.env.VITE_SUPABASE_URL
-const supabaseKey  = import.meta.env.VITE_SUPABASE_ANON_KEY
+const supabaseUrl  = import.meta.env.VITE_SUPABASE_URL || 'https://mock.supabase.co'
+const supabaseKey  = import.meta.env.VITE_SUPABASE_ANON_KEY || 'mock-key'
 
-if (!supabaseUrl || !supabaseKey) {
-  console.warn('[Supabase] Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY in .env')
+if (!import.meta.env.VITE_SUPABASE_URL) {
+  console.warn('[Supabase] Missing VITE_SUPABASE_URL in .env - Running in Mock Mode')
 }
 
-export const supabase = createClient(supabaseUrl ?? '', supabaseKey ?? '')
+export const supabase = createClient(supabaseUrl, supabaseKey)
+export const isMockMode = !import.meta.env.VITE_SUPABASE_URL
 
 export default supabase

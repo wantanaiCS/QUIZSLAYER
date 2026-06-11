@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { supabase } from '@/lib/supabase'
+import { supabase, isMockMode } from '@/lib/supabase'
 
 export const useAuthStore = defineStore('auth', () => {
   const user        = ref(null)
@@ -16,6 +16,14 @@ export const useAuthStore = defineStore('auth', () => {
   /** Initialize auth state from Supabase session */
   async function init() {
     initialized.value = false
+    
+    if (isMockMode) {
+      user.value = { id: 'mock-user-123', email: 'tester@mock.com' }
+      profile.value = { id: 'mock-user-123', username: 'Tester', coins: 9999 }
+      initialized.value = true
+      return
+    }
+
     const { data: { session } } = await supabase.auth.getSession()
     if (session?.user) {
       user.value = session.user
@@ -46,6 +54,12 @@ export const useAuthStore = defineStore('auth', () => {
   async function signInWithEmail(email, password) {
     loading.value = true
     error.value   = null
+    if (isMockMode) {
+      user.value = { id: 'mock-user-123', email }
+      profile.value = { id: 'mock-user-123', username: 'Mock Slayer', coins: 9999 }
+      loading.value = false
+      return true
+    }
     const { error: err } = await supabase.auth.signInWithPassword({ email, password })
     if (err) error.value = err.message
     loading.value = false
@@ -63,6 +77,12 @@ export const useAuthStore = defineStore('auth', () => {
   async function signUp(email, password, username) {
     loading.value = true
     error.value   = null
+    if (isMockMode) {
+      user.value = { id: 'mock-user-123', email }
+      profile.value = { id: 'mock-user-123', username, coins: 9999 }
+      loading.value = false
+      return true
+    }
     const { data, error: err } = await supabase.auth.signUp({ email, password })
     if (err) {
       error.value = err.message

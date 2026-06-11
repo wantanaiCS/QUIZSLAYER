@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import {
   calcPlayerMaxHP,
   calcMonsterHP,
@@ -50,7 +50,8 @@ export const useBattleStore = defineStore('battle', () => {
   // ─── Questions ──────────────────────────────────────────────────────────
   const stageQuestions   = ref([])
   const currentQIndex    = ref(0)
-  const currentQuestion  = computed(() => stageQuestions.value[currentQIndex.value] ?? null)
+  const currentQuestionRaw = computed(() => stageQuestions.value[currentQIndex.value] ?? null)
+  const currentQuestion  = ref(null)
   const questionsInStage = computed(() => stageQuestions.value.length)
 
   // ─── State ───────────────────────────────────────────────────────────────
@@ -59,6 +60,30 @@ export const useBattleStore = defineStore('battle', () => {
   const lastAnswerResult = ref(null) // 'correct' | 'wrong' | null
 
   const stageConfig = computed(() => getStageConfig(currentStageId.value))
+
+  // Handle stage mechanics like Shuffle Options
+  watch([currentQuestionRaw, () => stageConfig.value.mechanics], ([q, mechanics]) => {
+    if (!q) {
+      currentQuestion.value = null
+      return
+    }
+
+    if (mechanics?.includes('shuffle_options')) {
+      const opts = q.options.map((opt, idx) => ({ text: opt, isCorrect: idx === q.correct_index }))
+      // Simple shuffle
+      for (let i = opts.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [opts[i], opts[j]] = [opts[j], opts[i]]
+      }
+      currentQuestion.value = {
+        ...q,
+        options: opts.map(o => o.text),
+        correct_index: opts.findIndex(o => o.isCorrect)
+      }
+    } else {
+      currentQuestion.value = { ...q }
+    }
+  }, { immediate: true })
 
   // ─── Stats ──────────────────────────────────────────────────────────────
   const score          = ref(0)
@@ -150,7 +175,7 @@ export const useBattleStore = defineStore('battle', () => {
       phase.value  = 'game_over'
       result.value = 'lose'
     } else {
-      phase.value = 'monster_turn'
+      phase.value = 'player_turn'
     }
   }
 

@@ -1,6 +1,6 @@
 <template>
-  <div class="max-w-6xl mx-auto px-4 py-12">
-    <div class="text-center mb-12">
+  <div class="max-w-6xl mx-auto px-4 py-6 md:py-12">
+    <div v-if="step < 3" class="text-center mb-12">
       <h1 class="text-3xl font-bold text-qs-text mb-2">⚔️ Battle Arena</h1>
       <p class="text-qs-muted">เลือกชุดข้อสอบและโหมดความยาก แล้วลงสนาม!</p>
     </div>
@@ -66,36 +66,95 @@
       </div>
     </div>
 
-    <!-- Battle Screen placeholder (Phase 1 implementation) -->
-    <div v-if="step === 3" class="animate-fade-in">
-      <div class="card p-8 text-center">
-        <div class="text-6xl mb-4 animate-float">⚔️</div>
-        <h2 class="text-2xl font-bold text-qs-text mb-2">กำลังโหลด Battle Scene...</h2>
-        <p class="text-qs-muted">Phaser 3 Battle Engine จะถูก implement ใน Phase ถัดไป</p>
-        <div class="mt-6 p-4 bg-qs-surface rounded-qs text-left text-sm font-mono text-qs-muted">
-          <p>📌 Quiz Set: {{ selectedSet?.title }}</p>
-          <p>🎮 Difficulty: {{ selectedDiff }}</p>
-          <p>❤️ Player HP: {{ playerHP }}</p>
-          <p>👹 Monster: {{ currentStage?.monster }}</p>
+    <!-- Step 3: Battle Screen -->
+    <div v-if="step === 3" class="animate-fade-in max-w-3xl mx-auto">
+      <!-- Top: HP Bars -->
+      <div class="flex justify-between items-end mb-2 px-2">
+        <div>
+          <div class="text-sm font-bold text-qs-muted mb-1">{{ playerStore.profile?.username || 'Hero' }}</div>
+          <HPBar :hp="battleStore.playerHP" :maxHp="battleStore.playerMaxHP" isPlayer />
         </div>
-        <button class="btn-secondary mt-6" @click="step = 1; reset()">← เลือกใหม่</button>
+        <div class="text-right">
+          <div class="text-sm font-bold text-qs-danger mb-1">{{ currentStageInfo?.monster || 'Monster' }} (Stage {{ battleStore.currentStageId }})</div>
+          <HPBar :hp="battleStore.monsterHP" :maxHp="battleStore.monsterMaxHP" />
+        </div>
+      </div>
+
+      <!-- Middle: Phaser + Time Bars -->
+      <div class="card p-0 overflow-hidden mb-4 relative shadow-qs border-2 border-qs-border bg-qs-surface">
+        <div id="phaser-container" class="w-full aspect-video"></div>
+        
+        <!-- Player Time Bar -->
+        <BarTime :progress="battleStore.playerBar" class="absolute bottom-1 left-0 right-0 z-10" />
+      </div>
+
+      <div class="flex justify-between items-center mb-6 px-2">
+        <button class="btn-secondary text-xs px-3 py-1" @click="step = 1; reset()">← หนี (ยอมแพ้)</button>
+        <SkillGauge :streak="battleStore.streak" :gauge="battleStore.skillGauge" />
+      </div>
+
+      <!-- Bottom: Question Card -->
+      <QuestionCard 
+        :question="currentQuestion"
+        :cooldownLeft="battleStore.cooldownLeft"
+        :maxCooldown="maxCooldown"
+        :disabled="battleStore.phase !== 'player_turn' || showResult"
+        :showResult="showResult"
+        :selectedIndex="selectedIndex"
+        :hiddenOptions="hiddenOptions"
+        @answer="handleAnswer"
+      />
+      
+      <!-- Battle End Overlay -->
+      <div v-if="battleStore.phase === 'game_over' || battleStore.phase === 'victory'" 
+           class="fixed inset-0 z-50 flex items-center justify-center bg-qs-bg/80 backdrop-blur-sm">
+        <div class="card p-8 text-center max-w-md w-full mx-4 animate-slide-up">
+          <div class="text-6xl mb-4 animate-float">{{ battleStore.phase === 'victory' ? '🏆' : '💀' }}</div>
+          <h2 class="text-2xl font-bold mb-2" :class="battleStore.phase === 'victory' ? 'text-qs-success' : 'text-qs-danger'">
+            {{ battleStore.phase === 'victory' ? 'Victory!' : 'Game Over' }}
+          </h2>
+          <p class="text-qs-muted mb-6">
+            {{ battleStore.phase === 'victory' ? 'คุณพิชิตดันเจี้ยนนี้สำเร็จแล้ว!' : 'พ่ายแพ้... ลองใหม่อีกครั้ง!' }}
+          </p>
+          <div class="flex gap-4">
+            <button class="btn-secondary flex-1" @click="step = 1; reset()">กลับหน้าเลือก</button>
+            <button class="btn-primary flex-1" @click="startBattle">เล่นซ้ำ</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import Phaser from 'phaser'
+import { PHASER_CONFIG } from '@/lib/phaser/config'
 import { useQuizStore } from '@/stores/quizStore'
 import { useBattleStore } from '@/stores/battleStore'
-import { STAGES } from '@/utils/battleCalculator'
+import { usePlayerStore } from '@/stores/playerStore'
+import { useBattleLoop } from '@/composables/useBattleLoop'
+import { STAGES, getCooldownSeconds } from '@/utils/battleCalculator'
+
+import HPBar from '@/components/battle/HPBar.vue'
+import BarTime from '@/components/battle/BarTime.vue'
+import SkillGauge from '@/components/battle/SkillGauge.vue'
+import QuestionCard from '@/components/battle/QuestionCard.vue'
 
 const quizStore   = useQuizStore()
 const battleStore = useBattleStore()
+const playerStore = usePlayerStore()
 
 const step          = ref(1)
 const selectedSet   = ref(null)
 const selectedDiff  = ref('normal')
+let gameInstance    = null
+
+// UI State for answering
+const showResult = ref(false)
+const selectedIndex = ref(null)
+const hiddenOptions = ref([])
+let mechanicsTimer = null
 
 const difficulties = [
   { key: 'easy',   label: 'Easy',   emoji: '🟢', desc: 'ไม่มี Cooldown, HP เยอะ — เหมาะสำหรับมือใหม่' },
@@ -103,23 +162,180 @@ const difficulties = [
   { key: 'hard',   label: 'Hard',   emoji: '🔴', desc: 'Cooldown 7 วิ, ดาเมจ ×2 — สำหรับสายเดือด' },
 ]
 
-const playerHP    = computed(() => battleStore.playerHP)
-const currentStage = computed(() => STAGES[0])
+const currentStageInfo = computed(() => STAGES[battleStore.currentStageId - 1] || STAGES[0])
+const currentQuestion  = computed(() => battleStore.currentQuestion)
+const maxCooldown      = computed(() => getCooldownSeconds(battleStore.difficulty) || 0)
 
-function startBattle() {
-  if (!selectedSet.value) return
-  battleStore.startBattle(selectedSet.value, selectedDiff.value)
-  step.value = 3
+// Stage Mechanics: Blind & Vanishing Choices
+watch(() => battleStore.currentQuestion, (newQ) => {
+  hiddenOptions.value = []
+  if (mechanicsTimer) {
+    clearTimeout(mechanicsTimer)
+    clearInterval(mechanicsTimer)
+  }
+  
+  if (!newQ || battleStore.phase !== 'player_turn') return
+  
+  const mechanics = currentStageInfo.value?.mechanics || []
+  
+  if (mechanics.includes('blind')) {
+    // Blind: Hide all options after 3 seconds
+    mechanicsTimer = setTimeout(() => {
+      if (battleStore.phase === 'player_turn' && !showResult.value) {
+        hiddenOptions.value = [0, 1, 2, 3]
+      }
+    }, 3000)
+  }
+  
+  if (mechanics.includes('vanishing_choices')) {
+    // Vanishing: remove one wrong answer every 2.5 seconds
+    const wrongIndices = [0, 1, 2, 3].filter(i => i !== newQ.correct_index)
+    // shuffle wrongIndices
+    for (let i = wrongIndices.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [wrongIndices[i], wrongIndices[j]] = [wrongIndices[j], wrongIndices[i]]
+    }
+    
+    let removedCount = 0
+    mechanicsTimer = setInterval(() => {
+      if (battleStore.phase !== 'player_turn' || showResult.value) {
+        clearInterval(mechanicsTimer)
+        return
+      }
+      if (removedCount < 2) {
+        hiddenOptions.value.push(wrongIndices[removedCount])
+        removedCount++
+      } else {
+        clearInterval(mechanicsTimer)
+      }
+    }, 2500)
+  }
+})
+
+// Watch phase to trigger Phaser animations and save sessions
+watch(() => battleStore.phase, async (newPhase, oldPhase) => {
+  if (!gameInstance) return
+  const scene = gameInstance.scene.getScene('BattleScene')
+  
+  if (scene && oldPhase === 'player_turn' && newPhase === 'monster_turn') {
+    scene.events.emit('monsterAttack')
+    setTimeout(() => {
+      scene.events.emit('playerDamage', battleStore.lastDamageTaken)
+    }, 150)
+  }
+  
+  if (newPhase === 'game_over' || newPhase === 'victory') {
+    if (scene && newPhase === 'game_over') {
+      scene.events.emit('playerDeath')
+    }
+    await playerStore.saveSession({
+      quiz_set_id: battleStore.quizSet.id,
+      difficulty: battleStore.difficulty,
+      stage_reached: battleStore.currentStageId,
+      result: battleStore.result,
+      score: battleStore.score,
+      monsters_killed: battleStore.monstersCleared
+    })
+  }
+})
+
+function initPhaser() {
+  if (gameInstance) {
+    gameInstance.destroy(true)
+    gameInstance = null
+  }
+  const config = {
+    ...PHASER_CONFIG,
+    parent: 'phaser-container',
+  }
+  gameInstance = new Phaser.Game(config)
 }
+
+async function startBattle() {
+  if (!selectedSet.value) return
+  
+  // Load full questions array from DB or Mock
+  const fullSet = await quizStore.loadQuizSet(selectedSet.value.id)
+  if (!fullSet || !fullSet.questions) {
+    alert('ไม่สามารถโหลดข้อมูลชุดข้อสอบได้')
+    return
+  }
+  
+  battleStore.startBattle(fullSet, selectedDiff.value)
+  step.value = 3
+  showResult.value = false
+  selectedIndex.value = null
+  
+  nextTick(() => {
+    initPhaser()
+  })
+}
+
+// Composable is active as soon as component mounts, but it only acts when store.phase === 'player_turn'
+useBattleLoop()
 
 function reset() {
   battleStore.resetBattle()
   selectedSet.value = null
   selectedDiff.value = 'normal'
+  if (gameInstance) {
+    gameInstance.destroy(true)
+    gameInstance = null
+  }
+}
+
+async function handleAnswer(idx) {
+  if (battleStore.phase !== 'player_turn' || showResult.value) return
+  
+  selectedIndex.value = idx
+  showResult.value = true
+  battleStore.cooldownActive = false // Stop timer
+  
+  const isCorrect = idx === currentQuestion.value.correct_index
+  const previousHP = battleStore.playerHP
+  const previousMonsterHP = battleStore.monsterHP
+  
+  // Wait a bit to show result
+  setTimeout(() => {
+    battleStore.submitAnswer(idx)
+    
+    // Trigger animations
+    if (gameInstance && isCorrect) {
+      const scene = gameInstance.scene.getScene('BattleScene')
+      if (scene) {
+        scene.events.emit('playerAttack')
+        setTimeout(() => {
+          const damage = previousMonsterHP - battleStore.monsterHP
+          scene.events.emit(
+            battleStore.monsterHP <= 0 ? 'monsterDeath' : 'monsterDamage',
+            damage,
+          )
+        }, 150)
+      }
+    }
+
+    if (gameInstance && battleStore.playerHP < previousHP) {
+      const scene = gameInstance.scene.getScene('BattleScene')
+      scene?.events.emit('playerDamage', previousHP - battleStore.playerHP)
+    }
+    
+    showResult.value = false
+    selectedIndex.value = null
+  }, 1500)
 }
 
 onMounted(() => {
   quizStore.fetchPublicSets()
   quizStore.fetchMySets()
+})
+
+onUnmounted(() => {
+  if (gameInstance) {
+    gameInstance.destroy(true)
+  }
+  if (mechanicsTimer) {
+    clearTimeout(mechanicsTimer)
+    clearInterval(mechanicsTimer)
+  }
 })
 </script>

@@ -21,7 +21,7 @@ export const usePlayerStore = defineStore('player', () => {
       .from('game_sessions')
       .select('*, quiz_sets(title)')
       .eq('player_id', authStore.user.id)
-      .order('played_at', { ascending: false })
+      .order('created_at', { ascending: false })
       .limit(50)
     if (!err) sessions.value = data ?? []
     else error.value = err.message
@@ -41,13 +41,8 @@ export const usePlayerStore = defineStore('player', () => {
       .single()
     if (!err) {
       sessions.value.unshift(data)
-      // Update coin balance in profile
-      if (payload.coins_earned > 0) {
-        await supabase.rpc('increment_coins', {
-          user_id: authStore.user.id,
-          amount:  payload.coins_earned,
-        })
-      }
+      // We don't have an RPC function right now, so we could theoretically fetch and update profile
+      // But for Phase 1/2 we'll skip the coins logic or do a basic update.
     } else {
       error.value = err.message
     }
