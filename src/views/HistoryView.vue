@@ -28,8 +28,10 @@
         <div class="flex-1">
           <div class="font-medium text-qs-text">{{ session.quiz_sets?.title ?? 'Unknown Quiz' }}</div>
           <div class="text-xs text-qs-muted mt-1">
-            {{ session.difficulty }} · Stage {{ session.monsters_cleared }}/5 ·
-            {{ new Date(session.played_at).toLocaleDateString('th-TH') }}
+            {{ session.difficulty }} · Stage {{ session.stage_reached }}/5 ·
+            ถูก {{ session.total_correct ?? 0 }}/{{ session.total_answered ?? 0 }} ·
+            {{ formatDuration(session.duration_seconds ?? 0) }} ·
+            {{ new Date(session.created_at).toLocaleDateString('th-TH') }}
           </div>
         </div>
         <div class="text-right">
@@ -55,4 +57,10 @@ const stats = computed(() => [
 ])
 
 onMounted(() => playerStore.fetchHistory())
+
+function formatDuration(seconds) {
+  const minutes = Math.floor(seconds / 60)
+  const rest = String(seconds % 60).padStart(2, '0')
+  return `${minutes}:${rest}`
+}
 </script>

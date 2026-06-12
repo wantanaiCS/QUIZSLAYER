@@ -93,6 +93,14 @@ export const useBattleStore = defineStore('battle', () => {
   const monstersCleared = ref(0)
   const totalCorrect   = ref(0)
   const totalAnswered  = ref(0)
+  const answerLog      = ref([])
+  const startedAt      = ref(null)
+  const endedAt        = ref(null)
+  const durationSeconds = computed(() => {
+    if (!startedAt.value) return 0
+    const end = endedAt.value ?? Date.now()
+    return Math.max(0, Math.round((end - startedAt.value) / 1000))
+  })
 
   // ─── Actions ────────────────────────────────────────────────────────────
 
@@ -113,6 +121,9 @@ export const useBattleStore = defineStore('battle', () => {
     monstersCleared.value = 0
     totalCorrect.value   = 0
     totalAnswered.value  = 0
+    answerLog.value      = []
+    startedAt.value      = Date.now()
+    endedAt.value        = null
     streak.value         = 0
     skillGauge.value     = 0
 
@@ -152,6 +163,16 @@ export const useBattleStore = defineStore('battle', () => {
     const isCorrect = chosenIndex === q.correct_index
 
     lastAnswerResult.value = isCorrect ? 'correct' : 'wrong'
+    answerLog.value.push({
+      question_id: q.id ?? null,
+      stage: currentStageId.value,
+      question_text: q.question_text,
+      chosen_index: chosenIndex,
+      correct_index: q.correct_index,
+      is_correct: isCorrect,
+      chosen_answer: q.options?.[chosenIndex] ?? null,
+      correct_answer: q.options?.[q.correct_index] ?? null,
+    })
 
     if (isCorrect) {
       totalCorrect.value++
@@ -178,6 +199,8 @@ export const useBattleStore = defineStore('battle', () => {
     } else if (playerHP.value <= 0) {
       phase.value  = 'game_over'
       result.value = 'lose'
+      coinsEarned.value = 0
+      endedAt.value = Date.now()
     } else {
       currentQIndex.value = stageQuestions.value.length
         ? (currentQIndex.value + 1) % stageQuestions.value.length
@@ -200,6 +223,8 @@ export const useBattleStore = defineStore('battle', () => {
     if (playerHP.value <= 0) {
       phase.value  = 'game_over'
       result.value = 'lose'
+      coinsEarned.value = 0
+      endedAt.value = Date.now()
     } else {
       phase.value = 'player_turn'
     }
@@ -217,6 +242,7 @@ export const useBattleStore = defineStore('battle', () => {
       result.value = 'win'
       // Perfect run bonus
       if (playerHP.value === playerMaxHP.value) coinsEarned.value += 50
+      endedAt.value = Date.now()
     } else {
       phase.value = 'stage_clear'
       // Delay handled by component, then call nextStage()
@@ -234,6 +260,7 @@ export const useBattleStore = defineStore('battle', () => {
     } else {
       phase.value = 'victory'
       result.value = 'win'
+      endedAt.value = Date.now()
     }
   }
 
@@ -264,6 +291,11 @@ export const useBattleStore = defineStore('battle', () => {
     score.value = 0
     coinsEarned.value = 0
     monstersCleared.value = 0
+    totalCorrect.value = 0
+    totalAnswered.value = 0
+    answerLog.value = []
+    startedAt.value = null
+    endedAt.value = null
   }
 
   return {
@@ -279,6 +311,7 @@ export const useBattleStore = defineStore('battle', () => {
     lastDamageTaken,
     damageEventId,
     score, coinsEarned, monstersCleared, totalCorrect, totalAnswered,
+    answerLog, startedAt, endedAt, durationSeconds,
     // Actions
     startBattle, loadStage, submitAnswer, monsterAttack,
     handleStageClear, nextStage, useSkill, resetBattle,

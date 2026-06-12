@@ -71,7 +71,7 @@
       <!-- Top: HP Bars -->
       <div class="flex justify-between items-end mb-2 px-2">
         <div>
-          <div class="text-sm font-bold text-qs-muted mb-1">{{ playerStore.profile?.username || 'Hero' }}</div>
+          <div class="text-sm font-bold text-qs-muted mb-1">{{ authStore.displayName || 'Hero' }}</div>
           <HPBar :hp="battleStore.playerHP" :maxHp="battleStore.playerMaxHP" isPlayer />
         </div>
         <div class="text-right">
@@ -115,14 +115,61 @@
       <!-- Battle End Overlay -->
       <div v-if="battleStore.phase === 'game_over' || battleStore.phase === 'victory'" 
            class="fixed inset-0 z-50 flex items-center justify-center bg-qs-bg/80 backdrop-blur-sm">
-        <div class="card p-8 text-center max-w-md w-full mx-4 animate-slide-up">
+        <div class="card p-6 text-center max-w-2xl w-full mx-4 animate-slide-up max-h-[92vh] overflow-y-auto">
           <div class="text-6xl mb-4 animate-float">{{ battleStore.phase === 'victory' ? '🏆' : '💀' }}</div>
           <h2 class="text-2xl font-bold mb-2" :class="battleStore.phase === 'victory' ? 'text-qs-success' : 'text-qs-danger'">
             {{ battleStore.phase === 'victory' ? 'Victory!' : 'Game Over' }}
           </h2>
-          <p class="text-qs-muted mb-6">
-            {{ battleStore.phase === 'victory' ? 'คุณพิชิตดันเจี้ยนนี้สำเร็จแล้ว!' : 'พ่ายแพ้... ลองใหม่อีกครั้ง!' }}
+          <p class="text-qs-muted mb-5">
+            {{ endCaption }}
           </p>
+          <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
+            <div class="bg-qs-surface border border-qs-border rounded-qs p-3">
+              <div class="text-lg font-bold text-qs-text">{{ battleStore.score }}</div>
+              <div class="text-[11px] text-qs-muted">คะแนน</div>
+            </div>
+            <div class="bg-qs-surface border border-qs-border rounded-qs p-3">
+              <div class="text-lg font-bold text-qs-success">{{ battleStore.totalCorrect }}</div>
+              <div class="text-[11px] text-qs-muted">ตอบถูก</div>
+            </div>
+            <div class="bg-qs-surface border border-qs-border rounded-qs p-3">
+              <div class="text-lg font-bold text-qs-danger">{{ wrongAnswers }}</div>
+              <div class="text-[11px] text-qs-muted">ตอบผิด</div>
+            </div>
+            <div class="bg-qs-surface border border-qs-border rounded-qs p-3">
+              <div class="text-lg font-bold text-qs-accent">{{ formattedDuration }}</div>
+              <div class="text-[11px] text-qs-muted">เวลา</div>
+            </div>
+            <div class="bg-qs-surface border border-qs-border rounded-qs p-3 col-span-2 md:col-span-1">
+              <div class="text-lg font-bold text-qs-gold">+{{ battleStore.result === 'win' ? battleStore.coinsEarned : 0 }}</div>
+              <div class="text-[11px] text-qs-muted">coins</div>
+            </div>
+          </div>
+          <div class="text-left bg-qs-surface border border-qs-border rounded-qs p-4 mb-6">
+            <div class="font-bold text-qs-text mb-3">สรุปคำตอบรอบนี้</div>
+            <div class="space-y-2 max-h-56 overflow-y-auto pr-1">
+              <div
+                v-for="(answer, index) in battleStore.answerLog"
+                :key="`${answer.question_id}-${index}`"
+                class="rounded-qs border p-3"
+                :class="answer.is_correct ? 'border-qs-success/40 bg-green-900/10' : 'border-qs-danger/40 bg-red-900/10'"
+              >
+                <div class="flex items-start gap-2">
+                  <span class="font-bold" :class="answer.is_correct ? 'text-qs-success' : 'text-qs-danger'">
+                    {{ answer.is_correct ? 'ถูก' : 'ผิด' }}
+                  </span>
+                  <div class="flex-1">
+                    <div class="text-sm text-qs-text">{{ index + 1 }}. {{ answer.question_text }}</div>
+                    <div class="text-xs text-qs-muted mt-1">ตอบ: {{ answer.chosen_answer ?? '-' }}</div>
+                    <div v-if="!answer.is_correct" class="text-xs text-qs-success mt-1">เฉลย: {{ answer.correct_answer }}</div>
+                  </div>
+                </div>
+              </div>
+              <div v-if="battleStore.answerLog.length === 0" class="text-sm text-qs-muted text-center py-4">
+                ยังไม่มีคำตอบในรอบนี้
+              </div>
+            </div>
+          </div>
           <div class="flex gap-4">
             <button class="btn-secondary flex-1" @click="step = 1; reset()">กลับหน้าเลือก</button>
             <button class="btn-primary flex-1" @click="startBattle">เล่นซ้ำ</button>
@@ -140,6 +187,7 @@ import { PHASER_CONFIG } from '@/lib/phaser/config'
 import { useQuizStore } from '@/stores/quizStore'
 import { useBattleStore } from '@/stores/battleStore'
 import { usePlayerStore } from '@/stores/playerStore'
+import { useAuthStore } from '@/stores/authStore'
 import { useBattleLoop } from '@/composables/useBattleLoop'
 import { STAGES, getCooldownSeconds } from '@/utils/battleCalculator'
 
@@ -151,6 +199,7 @@ import QuestionCard from '@/components/battle/QuestionCard.vue'
 const quizStore   = useQuizStore()
 const battleStore = useBattleStore()
 const playerStore = usePlayerStore()
+const authStore   = useAuthStore()
 
 const step          = ref(1)
 const selectedSet   = ref(null)
@@ -163,6 +212,7 @@ const selectedIndex = ref(null)
 const hiddenOptions = ref([])
 let mechanicsTimer = null
 let rageStageIds = new Set()
+let sessionSavedForRun = false
 
 const difficulties = [
   { key: 'easy',   label: 'Easy',   emoji: '🟢', desc: 'ไม่มี Cooldown, HP เยอะ — เหมาะสำหรับมือใหม่' },
@@ -180,6 +230,28 @@ const currentQuestionNumber = computed(() => {
 
   const previousStageCount = questions.filter(q => q.stage < battleStore.currentStageId).length
   return Math.min(questions.length, previousStageCount + battleStore.currentQIndex + 1)
+})
+const wrongAnswers = computed(() => Math.max(0, battleStore.totalAnswered - battleStore.totalCorrect))
+const formattedDuration = computed(() => {
+  const seconds = battleStore.durationSeconds
+  const minutes = Math.floor(seconds / 60)
+  const rest = String(seconds % 60).padStart(2, '0')
+  return `${minutes}:${rest}`
+})
+const victoryCaptions = [
+  'เก่งเกินต้าน ตอบจนมอนสเตอร์ต้องขอเปิดหนังสือเอง!',
+  'ชนะแล้วรับเหรียญไปเลย สมองคมกว่าดาบอีกนะเนี่ย',
+  'รอบนี้ไม่ใช่ดวง ฝีมือล้วน ๆ จัดไป!',
+]
+const defeatCaptions = [
+  'ไปอ่านมาใหม่นะน้อง! มอนสเตอร์ยังงงว่ากล้ากดได้ไง',
+  'เกมจบ แต่บทเรียนยังไม่จบ เปิดชีทก่อนกลับมาล้างแค้น!',
+  'ตอบผิดไม่เป็นไร แต่ผิดซ้ำ ๆ อาจารย์เริ่มมองแล้วนะ',
+]
+const endCaption = computed(() => {
+  const captions = battleStore.result === 'win' ? victoryCaptions : defeatCaptions
+  const seed = (battleStore.score + battleStore.totalAnswered + battleStore.currentStageId) % captions.length
+  return captions[seed]
 })
 
 // Stage Mechanics: Blind & Vanishing Choices
@@ -230,8 +302,7 @@ watch(() => battleStore.currentQuestion, (newQ) => {
 
 // Watch phase to trigger Phaser animations and save sessions
 watch(() => battleStore.phase, async (newPhase, oldPhase) => {
-  if (!gameInstance) return
-  const scene = gameInstance.scene.getScene('BattleScene')
+  const scene = gameInstance?.scene.getScene('BattleScene')
   
   if (scene && oldPhase === 'player_turn' && newPhase === 'monster_turn') {
     scene.events.emit('monsterAttack')
@@ -241,16 +312,24 @@ watch(() => battleStore.phase, async (newPhase, oldPhase) => {
   }
   
   if (newPhase === 'game_over' || newPhase === 'victory') {
+    if (sessionSavedForRun) return
+    sessionSavedForRun = true
     if (scene && newPhase === 'game_over') {
       scene.events.emit('playerDeath')
     }
     await playerStore.saveSession({
       quiz_set_id: battleStore.quizSet.id,
+      quiz_title: battleStore.quizSet.title,
       difficulty: battleStore.difficulty,
       stage_reached: battleStore.currentStageId,
       result: battleStore.result,
       score: battleStore.score,
-      monsters_killed: battleStore.monstersCleared
+      monsters_killed: battleStore.monstersCleared,
+      total_answered: battleStore.totalAnswered,
+      total_correct: battleStore.totalCorrect,
+      duration_seconds: battleStore.durationSeconds,
+      coins_earned: battleStore.coinsEarned,
+      answer_summary: battleStore.answerLog,
     })
   }
 })
@@ -327,6 +406,7 @@ async function startBattle() {
   }
   
   battleStore.startBattle(fullSet, selectedDiff.value)
+  sessionSavedForRun = false
   step.value = 3
   showResult.value = false
   selectedIndex.value = null
