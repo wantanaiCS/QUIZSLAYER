@@ -96,6 +96,16 @@
         </button>
       </form>
 
+      <div v-if="!isSignUp" class="text-center mt-4">
+        <button
+          class="text-xs text-qs-muted hover:text-qs-primary transition-colors"
+          type="button"
+          @click="forgotPassword"
+        >
+          ลืม Password?
+        </button>
+      </div>
+
       <p class="text-center text-sm text-qs-muted mt-6">
         {{ isSignUp ? 'มีบัญชีอยู่แล้ว?' : 'ยังไม่มีบัญชี?' }}
         <button class="text-qs-primary hover:underline ml-1" type="button" @click="toggleMode">
@@ -150,5 +160,15 @@ function toggleMode() {
   authStore.notice = null
   password.value = ''
   confirmPassword.value = ''
+}
+
+async function forgotPassword() {
+  authStore.error = null
+  authStore.notice = null
+  if (!email.value) {
+    authStore.error = 'กรุณากรอก Email ก่อนแล้วกด "ลืม Password?"'
+    return
+  }
+  await authStore.sendPasswordReset(email.value)
 }
 </script>

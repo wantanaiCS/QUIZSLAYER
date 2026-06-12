@@ -39,6 +39,12 @@ const routes = [
     meta: { title: 'QuizSlayer — Profile', requiresAuth: true },
   },
   {
+    path: '/reset-password',
+    name: 'reset-password',
+    component: () => import('@/views/ResetPasswordView.vue'),
+    meta: { title: 'QuizSlayer — Reset Password' },
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'not-found',
     redirect: '/',

@@ -66,10 +66,13 @@ export const useAuthStore = defineStore('auth', () => {
     initialized.value = true
 
     if (!authSubscription) {
-      const { data } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
         user.value = session?.user ?? null
-        if (user.value) await ensureProfile(user.value)
-        else profile.value = null
+        if (user.value && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED')) {
+          await ensureProfile(user.value)
+        } else if (event === 'SIGNED_OUT') {
+          profile.value = null
+        }
       })
       authSubscription = data.subscription
     }
@@ -213,9 +216,32 @@ export const useAuthStore = defineStore('auth', () => {
     profile.value = null
   }
 
+  async function sendPasswordReset(email) {
+    loading.value = true
+    error.value = null
+    notice.value = null
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      error.value = 'Email ไม่ถูกต้อง'
+      loading.value = false
+      return false
+    }
+    if (isMockMode) {
+      notice.value = 'ส่งลิงก์รีเซ็ต Password ไปที่อีเมลแล้ว (Mock Mode)'
+      loading.value = false
+      return true
+    }
+    const { error: err } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: `${window.location.origin}/reset-password`,
+    })
+    if (err) error.value = 'ส่งอีเมลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง'
+    else notice.value = 'ส่งลิงก์รีเซ็ต Password ไปที่อีเมลแล้ว กรุณาตรวจสอบ inbox'
+    loading.value = false
+    return !err
+  }
+
   return {
     user, profile, initialized, loading, error, notice,
     isLoggedIn, displayName, coins,
-    init, fetchProfile, signInWithEmail, signInWithGoogle, signUp, signOut, writeMockProfile,
+    init, fetchProfile, signInWithEmail, signInWithGoogle, signUp, signOut, sendPasswordReset, writeMockProfile,
   }
 })
