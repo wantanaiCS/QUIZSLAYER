@@ -12,6 +12,7 @@ import {
   getStageConfig,
   SKILL_LV1_THRESHOLD,
   ULTIMATE_THRESHOLD,
+  ULTIMATE_HP_THRESHOLD,
 } from '@/utils/battleCalculator'
 
 export const useBattleStore = defineStore('battle', () => {
@@ -59,7 +60,14 @@ export const useBattleStore = defineStore('battle', () => {
 
   const skillReady = computed(() => {
     if (skillUsed.value) return 'none'
-    return getSkillState(skillCharge.value)
+    const baseState = getSkillState(skillCharge.value)
+    // Ultimate ต้องการ monster HP < 30% ด้วย
+    if (baseState === 'ultimate') {
+      const hpPct = monsterMaxHP.value > 0 ? monsterHP.value / monsterMaxHP.value : 1
+      if (hpPct >= ULTIMATE_HP_THRESHOLD) return 'ultimate_locked'  // charge พอ แต่ HP ยังไม่ต่ำพอ
+      return 'ultimate'
+    }
+    return baseState
   })
 
   // Progress toward next threshold (for gauge display)
@@ -99,9 +107,11 @@ export const useBattleStore = defineStore('battle', () => {
 
   const stageConfig = computed(() => getStageConfig(currentStageId.value))
 
-  // Shuffle options for Stage 2
-  watch([currentQuestionRaw, () => stageConfig.value.mechanics], ([q, mechanics]) => {
+  // Shuffle options for Stage 2, Reverse Controls for Stage 5
+  watch([currentQuestionRaw, () => stageConfig.value.mechanics, currentQIndex], ([q, mechanics]) => {
     if (!q) { currentQuestion.value = null; return }
+    
+    // Stage 2: Shuffle options
     if (mechanics?.includes('shuffle_options')) {
       const opts = q.options.map((opt, idx) => ({ text: opt, isCorrect: idx === q.correct_index }))
       for (let i = opts.length - 1; i > 0; i--) {
@@ -113,7 +123,34 @@ export const useBattleStore = defineStore('battle', () => {
         options: opts.map(o => o.text),
         correct_index: opts.findIndex(o => o.isCorrect),
       }
-    } else {
+    }
+    // Stage 5: Reverse controls every 3rd question
+    else if (mechanics?.includes('reverse_controls')) {
+      const questionIndex = currentQIndex.value
+      const shouldReverse = (questionIndex + 1) % 3 === 0  // ข้อที่ 3, 6, 9...
+      
+      if (shouldReverse && q.options.length >= 4) {
+        const opts = [...q.options]
+        ;[opts[0], opts[3]] = [opts[3], opts[0]]
+        ;[opts[1], opts[2]] = [opts[2], opts[1]]
+        
+        currentQuestion.value = {
+          ...q,
+          options: opts,
+          correct_index: (() => {
+            if (q.correct_index === 0) return 3
+            if (q.correct_index === 3) return 0
+            if (q.correct_index === 1) return 2
+            if (q.correct_index === 2) return 1
+            return q.correct_index
+          })(),
+          isReversed: true,
+        }
+      } else {
+        currentQuestion.value = { ...q }
+      }
+    }
+    else {
       currentQuestion.value = { ...q }
     }
   }, { immediate: true })
@@ -132,6 +169,16 @@ export const useBattleStore = defineStore('battle', () => {
     const end = endedAt.value ?? Date.now()
     return Math.max(0, Math.round((end - startedAt.value) / 1000))
   })
+
+  // ─── Stage 3 (Orc): Double Damage Zone ──────────────────────────────────
+  const inDangerZone = computed(() => monsterBar.value > 75)
+
+  // ─── Stage 4 (Dark Mage): Counter Attack ────────────────────────────────
+  const counterAttackTriggered = ref(false)  // true = สวนกลับเกิดขึ้น (ใช้ trigger animation)
+
+  // ─── Stage 5 (Boss): Pressure Mode & True No Miss ───────────────────────
+  const pressureCooldown = ref(10)
+  const bossStageErrors  = ref(0)
 
   // ─── Actions ────────────────────────────────────────────────────────────
 
@@ -181,15 +228,23 @@ export const useBattleStore = defineStore('battle', () => {
     lastAnswerResult.value = null
     lastDamageTaken.value  = 0
 
-    // Reset skill state per stage
-    skillCharge.value = 0
-    skillUsed.value   = false
+    // Skill state ข้ามด่านได้ — ไม่ reset ที่นี่
+    // (reset เฉพาะตอน startBattle ใหม่ทั้งหมดเท่านั้น)
+
+    // Stage 5 (Boss): Reset pressure cooldown & error count
+    if (stageId === 5) {
+      const baseCooldown = getCooldownSeconds(difficulty.value) || 10
+      pressureCooldown.value = baseCooldown
+      bossStageErrors.value = 0
+    }
   }
 
   function submitAnswer(chosenIndex) {
     if (phase.value !== 'player_turn' || !currentQuestion.value) return
 
+    // หยุด cooldown ก่อนทำอะไรทั้งหมด — ป้องกัน loop เรียก monsterAttack ซ้ำ
     cooldownActive.value = false
+    cooldownLeft.value   = 0
     totalAnswered.value++
 
     const q         = currentQuestion.value
@@ -224,11 +279,47 @@ export const useBattleStore = defineStore('battle', () => {
       score.value += 10 + (streak.value > 1 ? streak.value * 2 : 0)
 
       // นับ unique correct สำหรับ summary แค่ข้อละครั้ง
+      const wasNewCorrect = !correctInStage.value.has(currentQIndex.value)
       correctInStage.value.add(currentQIndex.value)
+      if (wasNewCorrect) {
+        answeredInStage.value++
+      }
+
+      // Stage 4 (Dark Mage): Counter Attack — มีโอกาส 40% สวนกลับหลัง player โจมตี
+      counterAttackTriggered.value = false
+      if (currentStageId.value === 4 && monsterHP.value > 0) {
+        const chance = stageConfig.value.counterChance ?? 0.40
+        if (Math.random() < chance) {
+          counterAttackTriggered.value = true
+          const counterDmg = calcMonsterDamage(difficulty.value)
+          lastDamageTaken.value = counterDmg
+          damageEventId.value++
+          playerHP.value = Math.max(0, playerHP.value - counterDmg)
+        }
+      }
     } else {
       streak.value = 0
 
-      const dmg = calcMonsterDamage(difficulty.value)
+      // Stage 3 (Orc): Double Damage Zone — ตอบผิดตอน Monster Bar > 75%
+      let dmg = calcMonsterDamage(difficulty.value)
+      if (currentStageId.value === 3 && inDangerZone.value) {
+        dmg *= 2
+      }
+
+      // Stage 5 (Boss): True No Miss — ตอบผิด 3 ครั้ง = Game Over
+      if (currentStageId.value === 5) {
+        bossStageErrors.value++
+        if (bossStageErrors.value >= 3) {
+          phase.value       = 'game_over'
+          result.value      = 'lose'
+          coinsEarned.value = 0
+          endedAt.value     = Date.now()
+          return
+        }
+        // Pressure Mode: ลด cooldown 2 วิทุกครั้งที่ผิด (min 3 วิ)
+        pressureCooldown.value = Math.max(3, pressureCooldown.value - 2)
+      }
+
       lastDamageTaken.value = dmg
       damageEventId.value++
       playerHP.value = Math.max(0, playerHP.value - dmg)
@@ -256,13 +347,18 @@ export const useBattleStore = defineStore('battle', () => {
       } else {
         currentQIndex.value = nextIdx
       }
-      answeredInStage.value++
       phase.value = 'player_turn'
     } else {
       // ตอบผิด → วนข้อเดิมซ้ำ (ไม่เปลี่ยน currentQIndex)
       phase.value = 'player_turn'
     }
   }
+
+  // Stage 5: Get dynamic cooldown (affected by pressure mode)
+  const effectiveCooldown = computed(() => {
+    if (currentStageId.value === 5) return pressureCooldown.value
+    return getCooldownSeconds(difficulty.value) || 0
+  })
 
   function monsterAttack() {
     const dmg         = calcMonsterDamage(difficulty.value)
@@ -323,7 +419,9 @@ export const useBattleStore = defineStore('battle', () => {
    * หลังใช้: charge reset = 0, skillUsed = true (ต้องตอบถูกใหม่เพื่อ charge)
    */
   function useSkill() {
-    if (skillReady.value === 'none' || phase.value !== 'player_turn') return null
+    // ultimate_locked = charge พอ แต่ HP monster ยังไม่ต่ำกว่า 30%
+    if (skillReady.value === 'none' || skillReady.value === 'ultimate_locked') return null
+    if (phase.value !== 'player_turn') return null
 
     const skill      = skillReady.value
     const dmg        = calcSkillDamage(monsterMaxHP.value, skill)
@@ -371,6 +469,9 @@ export const useBattleStore = defineStore('battle', () => {
     lastDamageTaken, damageEventId,
     score, coinsEarned, monstersCleared, totalCorrect, totalAnswered,
     answerLog, startedAt, endedAt, durationSeconds,
+    inDangerZone, pressureCooldown, bossStageErrors, effectiveCooldown,
+    counterAttackTriggered,
+    ULTIMATE_HP_THRESHOLD,
     startBattle, loadStage, submitAnswer, monsterAttack,
     handleStageClear, nextStage, useSkill, resetBattle,
   }

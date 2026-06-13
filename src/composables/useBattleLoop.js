@@ -48,42 +48,52 @@ export function useBattleLoop() {
           store.monsterBar = 100
           store.monsterAttack()
           if (store.phase === 'player_turn') {
-            store.playerBar  = 0
-            store.monsterBar = 0  // monster ใช้ turn ไปแล้ว reset ทั้งคู่
+            // monster ใช้ turn → reset แค่ monsterBar, playerBar วิ่งต่อได้เลย
+            store.monsterBar = 0
           }
         } else if (store.playerBar >= 100) {
-          store.playerBar      = 100
-          store.cooldownActive = true
-          cdStart              = ts
-          const total          = getCooldownSeconds(store.difficulty)
+          store.playerBar  = 100
+          cdStart          = ts   // บันทึกเวลาเริ่ม cooldown จาก loop โดยตรง
+          // Stage 5: ใช้ effectiveCooldown ที่ลดลงตาม pressure mode
+          const total          = store.currentStageId === 5 
+            ? store.effectiveCooldown 
+            : getCooldownSeconds(store.difficulty)
           store.cooldownLeft   = total ?? 0
+          store.cooldownActive = true  // ตั้งหลังสุด เพื่อไม่ให้ watch trigger cdStart ซ้ำ
           // *** monster bar ไม่ reset — เก็บค่าที่วิ่งมาไว้นับต่อหลังตอบ ***
         }
 
       } else {
         // ── Cooldown countdown ─────────────────────────────────────────────
-        const total = getCooldownSeconds(store.difficulty)
-        if (total !== null) {
+        const total = store.currentStageId === 5 
+          ? store.effectiveCooldown 
+          : getCooldownSeconds(store.difficulty)
+          
+        if (total !== null && total > 0 && cdStart > 0) {
           const elapsed      = (ts - cdStart) / 1000
           store.cooldownLeft = Math.max(0, total - elapsed)
 
           if (store.cooldownLeft <= 0 && store.cooldownActive) {
+            // ปิด cooldown ก่อนเรียก monsterAttack เพื่อกัน double-fire
             store.cooldownActive = false
+            store.cooldownLeft   = 0
+            cdStart              = 0
             store.streak         = 0
             store.monsterAttack()
             if (store.phase === 'player_turn') {
-              store.playerBar  = 0
+              // cooldown หมด monster โจมตี → reset แค่ monsterBar
               store.monsterBar = 0
             }
           }
         }
-        // Easy: no countdown
+        // total === null → Easy mode, ไม่ต้อง countdown
       }
     }
 
     rafId = requestAnimationFrame(loop)
   }
 
+  // reset cdStart เมื่อ cooldown ถูกยกเลิกจาก submitAnswer
   watch(() => store.cooldownActive, (active) => {
     if (!active) cdStart = 0
   })

@@ -80,19 +80,19 @@
     <!-- Step 3: Battle Screen -->
     <div v-if="step === 3" class="battle-layout animate-fade-in max-w-3xl mx-auto">
       <!-- Top: HP Bars -->
-      <div class="flex justify-between items-end mb-2 px-2">
-        <div>
-          <div class="text-sm font-bold text-qs-muted mb-1">{{ authStore.displayName || 'Hero' }}</div>
+      <div class="flex justify-between items-end mb-2 px-1 gap-2">
+        <div class="flex-1 min-w-0">
+          <div class="text-xs font-bold text-qs-muted mb-1 truncate">{{ authStore.displayName || 'Hero' }}</div>
           <HPBar :hp="battleStore.playerHP" :maxHp="battleStore.playerMaxHP" isPlayer />
         </div>
-        <div class="text-right">
-          <div class="text-sm font-bold text-qs-danger mb-1">{{ currentStageInfo?.monster || 'Monster' }} (Stage {{ battleStore.currentStageId }})</div>
+        <div class="flex-1 min-w-0 text-right">
+          <div class="text-xs font-bold text-qs-danger mb-1 truncate">{{ currentStageInfo?.monster }} <span class="text-qs-muted">(S{{ battleStore.currentStageId }})</span></div>
           <HPBar :hp="battleStore.monsterHP" :maxHp="battleStore.monsterMaxHP" />
         </div>
       </div>
 
       <!-- Middle: Phaser + Time Bars -->
-      <div class="battle-canvas card p-0 overflow-hidden mb-4 relative shadow-qs border-2 border-qs-border bg-qs-surface">
+      <div class="battle-canvas card p-0 overflow-hidden mb-2 relative shadow-qs border-2 border-qs-border bg-qs-surface">
         <div id="phaser-container" class="w-full h-full"></div>
         
         <!-- Hero + Monster Time Bars -->
@@ -104,14 +104,46 @@
         />
       </div>
 
-      <div class="flex justify-between items-center mb-6 px-2">
-        <button class="btn-secondary text-xs px-3 py-1" @click="step = 1; reset()">← หนี (ยอมแพ้)</button>
+      <div class="flex flex-wrap justify-between items-center gap-2 mb-3 px-1">
+        <button class="btn-secondary text-xs px-3 py-1.5 flex-shrink-0" @click="step = 1; reset()">← หนี</button>
+        
+        <!-- Stage Mechanic Indicators -->
+        <div class="flex flex-wrap items-center gap-1.5 text-xs flex-1 justify-center">
+          <!-- Stage 3: Danger Zone Indicator -->
+          <div v-if="battleStore.currentStageId === 3 && battleStore.inDangerZone" 
+               class="px-2 py-1 bg-red-900/30 border border-qs-danger rounded-qs text-qs-danger animate-pulse whitespace-nowrap">
+            ⚠️ Damage ×2
+          </div>
+
+          <!-- Stage 4: Counter Attack Indicator -->
+          <div v-if="battleStore.currentStageId === 4" class="px-2 py-1 bg-purple-900/30 border border-purple-500 rounded-qs text-purple-300 whitespace-nowrap">
+            🔮 สวนกลับ 40%
+          </div>
+          <Transition name="fade-lock">
+            <div v-if="battleStore.currentStageId === 4 && battleStore.counterAttackTriggered"
+                 class="px-2 py-1 bg-purple-900/60 border border-purple-400 rounded-qs text-purple-200 font-bold animate-pulse whitespace-nowrap">
+              ⚡ COUNTER!
+            </div>
+          </Transition>
+          
+          <!-- Stage 5: Boss Mechanic Indicators -->
+          <div v-if="battleStore.currentStageId === 5" class="flex items-center gap-1.5 flex-wrap">
+            <div class="px-2 py-1 bg-purple-900/30 border border-purple-500 rounded-qs text-purple-300 whitespace-nowrap">
+              💀 {{ battleStore.bossStageErrors }}/3
+            </div>
+            <div class="px-2 py-1 bg-orange-900/30 border border-orange-500 rounded-qs text-orange-300 whitespace-nowrap">
+              ⏱️ {{ battleStore.effectiveCooldown }}s
+            </div>
+          </div>
+        </div>
+        
         <SkillGauge
           :streak="battleStore.streak"
           :charge="battleStore.skillCharge"
           :gaugePct="battleStore.skillGaugePct"
           :ready="battleStore.skillReady"
           :skillUsed="battleStore.skillUsed"
+          :monsterHpPct="battleStore.monsterHPPct"
           @use-skill="handleUseSkill"
         />
       </div>
@@ -123,7 +155,9 @@
         :totalQuestions="totalQuizQuestions"
         :cooldownLeft="battleStore.cooldownLeft"
         :maxCooldown="maxCooldown"
-        :disabled="battleStore.phase !== 'player_turn' || showResult"
+        :disabled="!canAnswer"
+        :waitingForBar="!playerBarFull && !battleStore.cooldownActive"
+        :heroBarPct="battleStore.playerBar"
         :showResult="showResult"
         :selectedIndex="selectedIndex"
         :hiddenOptions="hiddenOptions"
@@ -253,16 +287,30 @@ const availableSets = computed(() => {
 
 const currentStageInfo = computed(() => STAGES[battleStore.currentStageId - 1] || STAGES[0])
 const currentQuestion  = computed(() => battleStore.currentQuestion)
-const maxCooldown      = computed(() => getCooldownSeconds(battleStore.difficulty) || 0)
+// Stage 5 (Boss): Use dynamic pressure cooldown
+const maxCooldown      = computed(() => {
+  if (battleStore.currentStageId === 5) {
+    return battleStore.effectiveCooldown
+  }
+  return getCooldownSeconds(battleStore.difficulty) || 0
+})
 const totalQuizQuestions = computed(() => battleStore.quizSet?.questions?.length ?? 0)
+
+// Player Bar ต้องเต็ม 100 ก่อนถึงจะตอบได้
+const playerBarFull = computed(() => battleStore.playerBar >= 100)
+const canAnswer = computed(() =>
+  battleStore.phase === 'player_turn' &&
+  !showResult.value &&
+  playerBarFull.value
+)
 
 // นับ unique questions ที่ตอบถูกแล้วทั้งหมด (ไม่นับซ้ำจากการวนข้อ)
 const currentQuestionNumber = computed(() => {
   const questions = battleStore.quizSet?.questions ?? []
   if (!questions.length) return 0
   const prevCount = questions.filter(q => q.stage < battleStore.currentStageId).length
-  // answeredInStage นับเฉพาะข้อที่ตอบถูกผ่านไปแล้ว ไม่นับข้อปัจจุบันที่กำลังแสดง
-  return prevCount + battleStore.answeredInStage + 1
+  // ใช้ correctInStage.size เพื่อนับเฉพาะข้อที่ unique (ไม่นับข้อที่วนซ้ำ)
+  return prevCount + battleStore.correctInStage.size + 1
 })
 const wrongAnswers = computed(() => Math.max(0, battleStore.totalAnswered - battleStore.totalCorrect))
 const formattedDuration = computed(() => {
@@ -287,50 +335,38 @@ const endCaption = computed(() => {
   return captions[seed]
 })
 
-// Stage Mechanics: Blind & Vanishing Choices
-watch(() => battleStore.currentQuestion, (newQ) => {
+// Stage Mechanics: ไม่มี blind/fake_answer แล้ว — ล้าง timer ที่ค้างไว้
+watch(() => battleStore.currentQIndex, () => {
   hiddenOptions.value = []
   if (mechanicsTimer) {
     clearTimeout(mechanicsTimer)
     clearInterval(mechanicsTimer)
+    mechanicsTimer = null
   }
-  
-  if (!newQ || battleStore.phase !== 'player_turn') return
-  
-  const mechanics = currentStageInfo.value?.mechanics || []
-  
-  if (mechanics.includes('blind')) {
-    // Blind: Hide all options after 3 seconds
-    mechanicsTimer = setTimeout(() => {
-      if (battleStore.phase === 'player_turn' && !showResult.value) {
-        hiddenOptions.value = [0, 1, 2, 3]
-      }
-    }, 3000)
+})
+
+// reset hiddenOptions เมื่อขึ้นด่านใหม่
+watch(() => battleStore.currentStageId, () => {
+  hiddenOptions.value = []
+  if (mechanicsTimer) {
+    clearTimeout(mechanicsTimer)
+    clearInterval(mechanicsTimer)
+    mechanicsTimer = null
   }
-  
-  if (mechanics.includes('vanishing_choices')) {
-    // Vanishing: remove one wrong answer every 2.5 seconds
-    const wrongIndices = [0, 1, 2, 3].filter(i => i !== newQ.correct_index)
-    // shuffle wrongIndices
-    for (let i = wrongIndices.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [wrongIndices[i], wrongIndices[j]] = [wrongIndices[j], wrongIndices[i]]
-    }
-    
-    let removedCount = 0
-    mechanicsTimer = setInterval(() => {
-      if (battleStore.phase !== 'player_turn' || showResult.value) {
-        clearInterval(mechanicsTimer)
-        return
-      }
-      if (removedCount < 2) {
-        hiddenOptions.value.push(wrongIndices[removedCount])
-        removedCount++
-      } else {
-        clearInterval(mechanicsTimer)
-      }
-    }, 2500)
-  }
+})
+
+// Stage 4: Counter Attack animation — trigger เมื่อ store บอกว่าสวนกลับเกิดขึ้น
+watch(() => battleStore.counterAttackTriggered, (triggered) => {
+  if (!triggered) return
+  const scene = gameInstance?.scene.getScene('BattleScene')
+  if (!scene) return
+  // delay เล็กน้อยหลัง player attack animation เสร็จ
+  setTimeout(() => {
+    scene.events.emit('monsterAttack')
+    setTimeout(() => {
+      scene.events.emit('playerDamage', battleStore.lastDamageTaken)
+    }, 180)
+  }, 400)
 })
 
 // Watch phase to trigger Phaser animations and save sessions
@@ -556,47 +592,67 @@ onUnmounted(() => {
   width: 100%;
   max-width: none;
   min-height: calc(100vh - 5rem);
-  padding: 0.75rem 1.5rem;
+  padding: 0.5rem 1rem;
 }
 
-.battle-page.is-playing .battle-layout {
-  max-width: none;
-  min-height: calc(100vh - 6.5rem);
-  display: grid;
-  grid-template-columns: minmax(420px, 0.9fr) minmax(440px, 1.1fr);
-  grid-template-rows: auto auto auto;
-  align-content: center;
-  column-gap: 1rem;
-}
-
-.battle-page.is-playing .battle-layout > :nth-child(1),
-.battle-page.is-playing .battle-layout > :nth-child(2),
-.battle-page.is-playing .battle-layout > :nth-child(3) {
-  grid-column: 1;
-}
-
-.battle-page.is-playing .battle-layout > :nth-child(4) {
-  grid-column: 2;
-  grid-row: 1 / span 3;
-  align-self: center;
-}
-
-.battle-canvas {
-  height: clamp(240px, 42vh, 390px);
-}
-
-@media (max-width: 1023px) {
-  .battle-page.is-playing {
-    padding: 0.75rem 1rem;
-  }
-
+/* ── Desktop ≥1280px: 2-column side-by-side ── */
+@media (min-width: 1280px) {
   .battle-page.is-playing .battle-layout {
-    min-height: auto;
-    display: block;
+    max-width: none;
+    min-height: calc(100vh - 6rem);
+    display: grid;
+    grid-template-columns: minmax(380px, 0.95fr) minmax(420px, 1.05fr);
+    grid-template-rows: auto auto auto;
+    align-content: center;
+    column-gap: 1.25rem;
   }
 
+  .battle-page.is-playing .battle-layout > :nth-child(1),
+  .battle-page.is-playing .battle-layout > :nth-child(2),
+  .battle-page.is-playing .battle-layout > :nth-child(3) {
+    grid-column: 1;
+  }
+
+  .battle-page.is-playing .battle-layout > :nth-child(4) {
+    grid-column: 2;
+    grid-row: 1 / span 3;
+    align-self: center;
+  }
+}
+
+/* ── Tablet & below <1280px: stack ── */
+@media (max-width: 1279px) {
+  .battle-page.is-playing {
+    padding: 0.5rem 0.75rem;
+    min-height: auto;
+  }
+  .battle-page.is-playing .battle-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+}
+
+/* ── Canvas height ── */
+.battle-canvas {
+  height: clamp(180px, 30vw, 340px);
+}
+
+@media (min-width: 1280px) {
   .battle-canvas {
-    height: clamp(200px, 32vh, 280px);
+    height: clamp(240px, 38vh, 360px);
+  }
+}
+
+/* ── Mobile <480px: compact ── */
+@media (max-width: 479px) {
+  .battle-page.is-playing {
+    padding: 0.25rem 0.5rem;
+  }
+  .battle-canvas {
+    height: clamp(150px, 44vw, 220px);
   }
 }
 </style>

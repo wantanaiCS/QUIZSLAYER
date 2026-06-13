@@ -161,9 +161,10 @@ export class BattleScene extends Phaser.Scene {
         onComplete: () => {
           // 2. ตั้งค่า background + player ใหม่ (ขณะจอมืด)
           this.setStageBackground(nextStageId)
+          // อัปเดต currentStageId ก่อน applyMonsterConfig เสมอ
+          this._currentStageId = nextStageId
           this.applyMonsterConfig(nextStageId)
           this.resetPlayer()
-          this._currentStageId = nextStageId
 
           // ซ่อน monster ไว้ก่อน จะเดินเข้ามาทีหลัง
           this.monster.setAlpha(0).setVisible(false)
@@ -381,7 +382,32 @@ export class BattleScene extends Phaser.Scene {
 
   // ─── Player animations ────────────────────────────────────────────────────
   playPlayerAttack() {
+    // ตำแหน่ง home ของ player
+    const homeX = 105
+    const targetX = 260   // พุ่งไปหา monster
+
+    // 1. เล่น attack sprite ทันที
     this.player.play('soldier-attack')
+
+    // 2. Dash เข้าหา monster พร้อมกัน
+    this.tweens.add({
+      targets:  this.player,
+      x:        targetX,
+      duration: 120,
+      ease:     'Power2.easeIn',
+      onComplete: () => {
+        // 3. กระทบ → camera shake เล็กน้อย
+        this.cameras.main.shake(60, 0.005)
+        // 4. Dash กลับ
+        this.tweens.add({
+          targets:  this.player,
+          x:        homeX,
+          duration: 180,
+          ease:     'Power2.easeOut',
+        })
+      },
+    })
+
     this.player.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
       this.player.play('soldier-idle')
     })
@@ -389,6 +415,22 @@ export class BattleScene extends Phaser.Scene {
 
   playPlayerHurt(damage = 1) {
     this.showDamageNumber(100, damage, false)
+    // Knockback เล็กน้อยเมื่อโดนตี
+    const homeX = 105
+    this.tweens.add({
+      targets:  this.player,
+      x:        homeX - 18,
+      duration: 80,
+      ease:     'Power2.easeOut',
+      onComplete: () => {
+        this.tweens.add({
+          targets:  this.player,
+          x:        homeX,
+          duration: 150,
+          ease:     'Back.easeOut',
+        })
+      },
+    })
     this.player.play('soldier-hurt')
     this.player.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
       this.player.play('soldier-idle')
@@ -401,8 +443,30 @@ export class BattleScene extends Phaser.Scene {
 
   // ─── Monster animations ───────────────────────────────────────────────────
   playMonsterAttack() {
+    const homeX   = 375
+    const targetX = 220   // พุ่งไปหา player
+
     const key = Math.random() > 0.5 ? 'orc-attack' : 'orc-attack-heavy'
     this.monster.play(key)
+
+    // Dash เข้าหา player
+    this.tweens.add({
+      targets:  this.monster,
+      x:        targetX,
+      duration: 120,
+      ease:     'Power2.easeIn',
+      onComplete: () => {
+        this.cameras.main.shake(70, 0.005)
+        // Dash กลับ
+        this.tweens.add({
+          targets:  this.monster,
+          x:        homeX,
+          duration: 200,
+          ease:     'Power2.easeOut',
+        })
+      },
+    })
+
     this.monster.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
       this.monster.play('orc-idle')
     })
@@ -422,6 +486,22 @@ export class BattleScene extends Phaser.Scene {
 
   playMonsterHurt(damage = 1) {
     this.showDamageNumber(380, damage, false)
+    // Knockback เล็กน้อยเมื่อโดนตี
+    const homeX = 375
+    this.tweens.add({
+      targets:  this.monster,
+      x:        homeX + 20,
+      duration: 80,
+      ease:     'Power2.easeOut',
+      onComplete: () => {
+        this.tweens.add({
+          targets:  this.monster,
+          x:        homeX,
+          duration: 150,
+          ease:     'Back.easeOut',
+        })
+      },
+    })
     this.monster.play('orc-hurt')
     this.monster.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
       this.monster.play('orc-idle')

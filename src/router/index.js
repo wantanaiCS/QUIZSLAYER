@@ -15,6 +15,12 @@ const routes = [
     meta: { title: 'QuizSlayer — Login', guestOnly: true },
   },
   {
+    path: '/free',
+    name: 'free',
+    component: () => import('@/views/FreeView.vue'),
+    meta: { title: 'QuizSlayer — Free Practice', requiresAuth: true },
+  },
+  {
     path: '/battle',
     name: 'battle',
     component: () => import('@/views/BattleView.vue'),

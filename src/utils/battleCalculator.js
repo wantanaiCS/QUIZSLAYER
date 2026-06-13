@@ -145,12 +145,15 @@ export const MONSTER_BAR_SPEEDS = {
  * We expose a single 0–MAX charge value; the UI decides which tier to show.
  */
 export const SKILL_CHARGE_PER_CORRECT = 1
-export const SKILL_LV1_THRESHOLD      = 2   // ready after 2 correct
-export const ULTIMATE_THRESHOLD       = 5   // upgrades to ultimate after 5 total
+export const SKILL_LV1_THRESHOLD      = 2   // Skill lv1 ready after 2 correct
+export const ULTIMATE_THRESHOLD       = 3   // Ultimate ready after 3 correct (ลดจาก 5 → 3)
+export const ULTIMATE_HP_THRESHOLD    = 0.30 // Ultimate ใช้ได้เฉพาะตอน monster HP < 30%
 
 /**
  * Returns skill state based on current charge.
- * @param {number} charge   current accumulated charge
+ * Note: ultimate จะ "ready" ก็ต่อเมื่อ charge ≥ ULTIMATE_THRESHOLD เท่านั้น
+ * การเช็ค HP condition ทำที่ store (skillReady computed)
+ * @param {number} charge
  * @returns {'none'|'skill_lv1'|'ultimate'}
  */
 export function getSkillState(charge) {
@@ -161,6 +164,17 @@ export function getSkillState(charge) {
 
 // ─── Stage Config ────────────────────────────────────────────────────────────
 
+/**
+ * Stage Mechanics Guide:
+ * 
+ * Stage 1 (Slime):        Tutorial - no mechanics
+ * Stage 2 (Goblin):       shuffle_options - สลับตำแหน่งตัวเลือก
+ * Stage 3 (Orc):          double_damage_zone - ตอบผิดตอน Monster Bar > 75% โดน dmg x2
+ * Stage 4 (Dark Mage):    counter_attack - มีโอกาส 40% สวนกลับเมื่อ player โจมตีถูก
+ * Stage 5 (Boss):         pressure_mode - cooldown ลดลงทุกครั้งที่ตอบผิด, 
+ *                         reverse_controls - สลับตำแหน่ง A/D ทุกข้อที่ 3,
+ *                         true_no_miss - ตอบผิด 3 ครั้งใน stage = Game Over
+ */
 export const STAGES = [
   {
     id: 1,
@@ -170,6 +184,7 @@ export const STAGES = [
     barSpeedKey: 'slime',
     questionDifficulty: 'easy',
     bgScene: 'grassland',
+    description: 'ฝึกซ้อมพื้นฐาน ไม่มีกลไกพิเศษ',
   },
   {
     id: 2,
@@ -179,34 +194,38 @@ export const STAGES = [
     barSpeedKey: 'goblin',
     questionDifficulty: 'easy',
     bgScene: 'forest',
+    description: 'ตัวเลือกคำตอบจะสลับตำแหน่งทุกข้อ',
   },
   {
     id: 3,
     monster:   'Orc',
     monsterKey: 'orc',
-    mechanics:  ['stun_bar'],
+    mechanics:  ['double_damage_zone'],
     barSpeedKey: 'orc',
     questionDifficulty: 'normal',
     bgScene: 'cave',
-    cooldownBonus: 2,
+    description: 'ตอบผิดตอน Monster Bar > 75% จะโดน Damage ×2',
   },
   {
     id: 4,
     monster:   'Dark Mage',
     monsterKey: 'dark_mage',
-    mechanics:  ['blind', 'counter'],
+    mechanics:  ['counter_attack'],
     barSpeedKey: 'dark_mage',
     questionDifficulty: 'normal',
     bgScene: 'tower',
+    description: 'มีโอกาส 40% ที่ Dark Mage จะสวนกลับเมื่อ Hero โจมตี',
+    counterChance: 0.40,
   },
   {
     id: 5,
     monster:   'Boss',
     monsterKey: 'boss',
-    mechanics:  ['rage', 'decoy', 'vanishing_choices', 'no_miss_zone'],
+    mechanics:  ['pressure_mode', 'reverse_controls', 'true_no_miss'],
     barSpeedKey: 'boss',
     questionDifficulty: 'hard',
     bgScene: 'throne',
+    description: 'ตอบผิด → Cooldown ลดลง, ทุกข้อที่ 3 ตัวเลือกสลับที่, ผิด 3 ครั้ง = Game Over',
   },
 ]
 
