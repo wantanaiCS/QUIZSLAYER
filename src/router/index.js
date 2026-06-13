@@ -15,6 +15,18 @@ const routes = [
     meta: { title: 'QuizSlayer — Login', guestOnly: true },
   },
   {
+    path: '/pvp',
+    name: 'pvp-lobby',
+    component: () => import('@/views/PvPLobbyView.vue'),
+    meta: { title: 'QuizSlayer — PvP Battle', requiresAuth: true },
+  },
+  {
+    path: '/pvp/battle',
+    name: 'pvp-battle',
+    component: () => import('@/views/PvPBattleView.vue'),
+    meta: { title: 'QuizSlayer — PvP Fighting!', requiresAuth: true },
+  },
+  {
     path: '/free',
     name: 'free',
     component: () => import('@/views/FreeView.vue'),

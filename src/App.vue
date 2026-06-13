@@ -96,6 +96,7 @@ const menuOpen  = ref(false)
 const navLinks = [
   { to: '/',           label: 'หน้าหลัก' },
   { to: '/battle',     label: '⚔️ Battle' },
+  { to: '/pvp',        label: '🆚 PvP' },
   { to: '/free',       label: '📖 Free Mode' },
   { to: '/generator',  label: 'สร้างข้อสอบ' },
   { to: '/my-quizzes', label: 'ชุดข้อสอบ' },
