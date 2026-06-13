@@ -84,16 +84,23 @@
       <div class="battle-canvas card p-0 overflow-hidden mb-4 relative shadow-qs border-2 border-qs-border bg-qs-surface">
         <div id="phaser-container" class="w-full h-full"></div>
         
-        <!-- Player Time Bar -->
-        <BarTime :progress="battleStore.playerBar" class="absolute bottom-1 left-0 right-0 z-10" />
+        <!-- Hero + Monster Time Bars -->
+        <BarTime
+          :playerProgress="battleStore.playerBar"
+          :monsterProgress="battleStore.monsterBar"
+          :streak="battleStore.streak"
+          class="absolute bottom-1 left-0 right-0 z-10"
+        />
       </div>
 
       <div class="flex justify-between items-center mb-6 px-2">
         <button class="btn-secondary text-xs px-3 py-1" @click="step = 1; reset()">← หนี (ยอมแพ้)</button>
         <SkillGauge
           :streak="battleStore.streak"
-          :gauge="battleStore.skillGauge"
+          :charge="battleStore.skillCharge"
+          :gaugePct="battleStore.skillGaugePct"
           :ready="battleStore.skillReady"
+          :skillUsed="battleStore.skillUsed"
           @use-skill="handleUseSkill"
         />
       </div>
@@ -224,12 +231,14 @@ const currentStageInfo = computed(() => STAGES[battleStore.currentStageId - 1] |
 const currentQuestion  = computed(() => battleStore.currentQuestion)
 const maxCooldown      = computed(() => getCooldownSeconds(battleStore.difficulty) || 0)
 const totalQuizQuestions = computed(() => battleStore.quizSet?.questions?.length ?? 0)
+
+// นับ unique questions ที่ตอบถูกแล้วทั้งหมด (ไม่นับซ้ำจากการวนข้อ)
 const currentQuestionNumber = computed(() => {
   const questions = battleStore.quizSet?.questions ?? []
   if (!questions.length) return 0
-
-  const previousStageCount = questions.filter(q => q.stage < battleStore.currentStageId).length
-  return Math.min(questions.length, previousStageCount + battleStore.currentQIndex + 1)
+  const prevCount = questions.filter(q => q.stage < battleStore.currentStageId).length
+  // answeredInStage นับเฉพาะข้อที่ตอบถูกผ่านไปแล้ว ไม่นับข้อปัจจุบันที่กำลังแสดง
+  return prevCount + battleStore.answeredInStage + 1
 })
 const wrongAnswers = computed(() => Math.max(0, battleStore.totalAnswered - battleStore.totalCorrect))
 const formattedDuration = computed(() => {
@@ -361,9 +370,11 @@ watch(() => battleStore.monsterHP, (hp, previousHp) => {
 
 watch(() => battleStore.phase, (newPhase) => {
   if (newPhase === 'stage_clear' && battleStore.currentStageId < 5) {
+    // รอให้ death animation + particle + flash เล่นจบก่อน (~650ms)
+    // Phaser จะรับ stageChanged แล้วเล่น: walk-in → title → fade
     setTimeout(() => {
       battleStore.nextStage()
-    }, 900)
+    }, 650)
   }
 })
 

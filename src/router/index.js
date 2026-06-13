@@ -27,6 +27,18 @@ const routes = [
     meta: { title: 'QuizSlayer — Quiz Generator', requiresAuth: true },
   },
   {
+    path: '/my-quizzes',
+    name: 'quiz-manage',
+    component: () => import('@/views/QuizManageView.vue'),
+    meta: { title: 'QuizSlayer — ชุดข้อสอบของฉัน', requiresAuth: true },
+  },
+  {
+    path: '/my-quizzes/:id/edit',
+    name: 'quiz-edit',
+    component: () => import('@/views/QuizEditView.vue'),
+    meta: { title: 'QuizSlayer — แก้ไขชุดข้อสอบ', requiresAuth: true },
+  },
+  {
     path: '/history',
     name: 'history',
     component: () => import('@/views/HistoryView.vue'),

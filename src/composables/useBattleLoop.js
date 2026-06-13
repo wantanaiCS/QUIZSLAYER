@@ -1,35 +1,33 @@
 /**
  * useBattleLoop.js — requestAnimationFrame-based battle loop
- * Manages bar time filling, cooldown countdown, and turn triggers
+ *
+ * Bar Time Rules:
+ * - ทั้งสอง bars เริ่มที่ 0 เมื่อเริ่มด่าน → ค่อยๆ fill พร้อมกัน
+ * - Player speed (1.10 base) > monster stage 1–4 → hero ได้ turn แรกตามธรรมชาติ
+ * - Boss speed (1.20) > player base → ต้องมี streak เพื่อแซง
  */
 import { onMounted, onUnmounted, watch } from 'vue'
 import { useBattleStore } from '@/stores/battleStore'
-import { getPlayerBarSpeed, getCooldownSeconds } from '@/utils/battleCalculator'
+import { getPlayerBarSpeed, getCooldownSeconds, MONSTER_BAR_SPEEDS } from '@/utils/battleCalculator'
 
-// Monster bar fill speeds (multiplier × FILL_SCALE units/sec)
-const MONSTER_SPEEDS = {
-  slime:     0.65,
-  goblin:    0.90,
-  orc:       1.15,
-  dark_mage: 1.35,
-  boss:      1.55,
-}
-const MONSTER_KEYS  = ['slime', 'goblin', 'orc', 'dark_mage', 'boss']
-const FILL_SCALE    = 26  // units/sec at speed 1.0 → full bar in ~3.8s
+const STAGE_KEYS = ['slime', 'goblin', 'orc', 'dark_mage', 'boss']
+const FILL_SCALE = 26  // units/sec at multiplier 1.0 → full bar in ~3.8s
 
 function monsterFillRate(stageId) {
-  return (MONSTER_SPEEDS[MONSTER_KEYS[stageId - 1]] ?? 1.0) * FILL_SCALE
+  const key   = STAGE_KEYS[(stageId - 1) % STAGE_KEYS.length]
+  const speed = MONSTER_BAR_SPEEDS[key] ?? 1.0
+  return speed * FILL_SCALE
 }
 
 export function useBattleLoop() {
-  const store      = useBattleStore()
-  let rafId        = null
-  let lastTs       = 0
-  let cooldownStart = 0
+  const store = useBattleStore()
+  let rafId   = null
+  let lastTs  = 0
+  let cdStart = 0
 
   function loop(ts) {
     if (lastTs === 0) lastTs = ts
-    const dt = Math.min((ts - lastTs) / 1000, 0.1)   // cap delta at 100ms
+    const dt = Math.min((ts - lastTs) / 1000, 0.1)
     lastTs = ts
 
     if (store.phase === 'player_turn') {
@@ -43,34 +41,33 @@ export function useBattleLoop() {
 
         // Tie-break: player wins
         if (store.playerBar >= 100 && store.monsterBar >= 100) {
-          store.monsterBar = 99.5
+          store.monsterBar = 99.9
         }
 
         if (store.monsterBar >= 100) {
-          // Monster attacks!
           store.monsterBar = 100
           store.monsterAttack()
           if (store.phase === 'player_turn') {
             store.playerBar  = 0
-            store.monsterBar = 0
+            store.monsterBar = 0  // monster ใช้ turn ไปแล้ว reset ทั้งคู่
           }
         } else if (store.playerBar >= 100) {
-          // Player's turn to answer
-          store.playerBar     = 100
+          store.playerBar      = 100
           store.cooldownActive = true
-          cooldownStart        = ts
+          cdStart              = ts
           const total          = getCooldownSeconds(store.difficulty)
           store.cooldownLeft   = total ?? 0
+          // *** monster bar ไม่ reset — เก็บค่าที่วิ่งมาไว้นับต่อหลังตอบ ***
         }
+
       } else {
-        // ── Cooldown countdown ────────────────────────────────────────────
+        // ── Cooldown countdown ─────────────────────────────────────────────
         const total = getCooldownSeconds(store.difficulty)
         if (total !== null) {
-          const elapsed      = (ts - cooldownStart) / 1000
+          const elapsed      = (ts - cdStart) / 1000
           store.cooldownLeft = Math.max(0, total - elapsed)
 
           if (store.cooldownLeft <= 0 && store.cooldownActive) {
-            // Time expired → monster attack penalty
             store.cooldownActive = false
             store.streak         = 0
             store.monsterAttack()
@@ -80,16 +77,15 @@ export function useBattleLoop() {
             }
           }
         }
-        // Easy: no countdown, player answers whenever
+        // Easy: no countdown
       }
     }
 
     rafId = requestAnimationFrame(loop)
   }
 
-  // Reset cooldown timer when answer is submitted (cooldownActive → false)
   watch(() => store.cooldownActive, (active) => {
-    if (!active) cooldownStart = 0
+    if (!active) cdStart = 0
   })
 
   onMounted(() => {

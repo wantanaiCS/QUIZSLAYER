@@ -194,9 +194,16 @@ export const useQuizStore = defineStore('quiz', () => {
     if (!authStore.user) return null
     if (!Array.isArray(questions) || questions.length === 0) throw new Error('JSON must be a non-empty array')
     questions.forEach((q, index) => {
-      if (typeof q.question !== 'string' || !Array.isArray(q.options) || q.options.length !== 4
-        || !Number.isInteger(q.correct_index) || q.correct_index < 0 || q.correct_index > 3) {
-        throw new Error(`Invalid question at index ${index}`)
+      // รองรับทั้ง "question" (จาก AI) และ "question_text" (internal format)
+      const questionText = q.question ?? q.question_text
+      if (typeof questionText !== 'string' || !questionText.trim()) {
+        throw new Error(`Invalid question at index ${index}: missing "question" field`)
+      }
+      if (!Array.isArray(q.options) || q.options.length !== 4) {
+        throw new Error(`Invalid question at index ${index}: options must be array of 4`)
+      }
+      if (!Number.isInteger(q.correct_index) || q.correct_index < 0 || q.correct_index > 3) {
+        throw new Error(`Invalid question at index ${index}: correct_index must be 0-3`)
       }
     })
     loading.value = true
@@ -205,7 +212,7 @@ export const useQuizStore = defineStore('quiz', () => {
     const perStage = Math.max(1, Math.ceil(questions.length / 5))
     const formattedQuestions = questions.map((q, i) => ({
       stage:         Math.min(5, Math.floor(i / perStage) + 1),
-      question_text: q.question,
+      question_text: q.question ?? q.question_text,
       options:       q.options,
       correct_index: q.correct_index,
       explanation:   q.explanation ?? null,
@@ -252,9 +259,167 @@ export const useQuizStore = defineStore('quiz', () => {
     activeSet.value = set
   }
 
+  // ─── Delete quiz set ──────────────────────────────────
+  async function deleteQuizSet(quizSetId) {
+    const authStore = useAuthStore()
+    if (!authStore.user) return false
+    loading.value = true
+
+    if (isMockMode) {
+      const stored = readStoredMockSets().filter(s => s.id !== quizSetId)
+      writeStoredMockSets(stored)
+      quizSets.value = quizSets.value.filter(s => s.id !== quizSetId)
+      if (activeSet.value?.id === quizSetId) activeSet.value = null
+      loading.value = false
+      return true
+    }
+
+    // Questions cascade-delete via FK ON DELETE CASCADE in schema
+    const { error: err } = await supabase
+      .from('quiz_sets')
+      .delete()
+      .eq('id', quizSetId)
+      .eq('author_id', authStore.user.id)   // RLS double-check
+    if (err) { error.value = err.message; loading.value = false; return false }
+
+    quizSets.value = quizSets.value.filter(s => s.id !== quizSetId)
+    if (activeSet.value?.id === quizSetId) activeSet.value = null
+    loading.value = false
+    return true
+  }
+
+  // ─── Update quiz set title / visibility ──────────────
+  async function updateQuizSet(quizSetId, patch) {
+    const authStore = useAuthStore()
+    if (!authStore.user) return false
+    loading.value = true
+
+    if (isMockMode) {
+      const stored = readStoredMockSets().map(s =>
+        s.id === quizSetId ? { ...s, ...patch } : s
+      )
+      writeStoredMockSets(stored)
+      quizSets.value = quizSets.value.map(s =>
+        s.id === quizSetId ? { ...s, ...patch } : s
+      )
+      if (activeSet.value?.id === quizSetId) {
+        activeSet.value = { ...activeSet.value, ...patch }
+      }
+      loading.value = false
+      return true
+    }
+
+    const { error: err } = await supabase
+      .from('quiz_sets')
+      .update(patch)
+      .eq('id', quizSetId)
+      .eq('author_id', authStore.user.id)
+    if (err) { error.value = err.message; loading.value = false; return false }
+
+    quizSets.value = quizSets.value.map(s =>
+      s.id === quizSetId ? { ...s, ...patch } : s
+    )
+    if (activeSet.value?.id === quizSetId) {
+      activeSet.value = { ...activeSet.value, ...patch }
+    }
+    loading.value = false
+    return true
+  }
+
+  // ─── Update a single question ─────────────────────────
+  async function updateQuestion(quizSetId, questionIndex, patch) {
+    const authStore = useAuthStore()
+    if (!authStore.user) return false
+    loading.value = true
+
+    if (isMockMode) {
+      const stored = readStoredMockSets()
+      const setIdx = stored.findIndex(s => s.id === quizSetId)
+      if (setIdx === -1) { loading.value = false; return false }
+      stored[setIdx].questions[questionIndex] = { ...stored[setIdx].questions[questionIndex], ...patch }
+      writeStoredMockSets(stored)
+      if (activeSet.value?.id === quizSetId) {
+        const qs = [...activeSet.value.questions]
+        qs[questionIndex] = { ...qs[questionIndex], ...patch }
+        activeSet.value = { ...activeSet.value, questions: qs }
+      }
+      loading.value = false
+      return true
+    }
+
+    // Need question id — load full set first
+    const set = await loadQuizSet(quizSetId)
+    if (!set) { loading.value = false; return false }
+    const question = set.questions[questionIndex]
+    if (!question?.id) { loading.value = false; return false }
+
+    const { error: err } = await supabase
+      .from('questions')
+      .update(patch)
+      .eq('id', question.id)
+    if (err) { error.value = err.message; loading.value = false; return false }
+
+    const qs = [...activeSet.value.questions]
+    qs[questionIndex] = { ...qs[questionIndex], ...patch }
+    activeSet.value = { ...activeSet.value, questions: qs }
+    loading.value = false
+    return true
+  }
+
+  // ─── Delete a single question ─────────────────────────
+  async function deleteQuestion(quizSetId, questionIndex) {
+    const authStore = useAuthStore()
+    if (!authStore.user) return false
+    loading.value = true
+
+    if (isMockMode) {
+      const stored = readStoredMockSets()
+      const setIdx = stored.findIndex(s => s.id === quizSetId)
+      if (setIdx === -1) { loading.value = false; return false }
+      stored[setIdx].questions.splice(questionIndex, 1)
+      writeStoredMockSets(stored)
+      if (activeSet.value?.id === quizSetId) {
+        const qs = [...activeSet.value.questions]
+        qs.splice(questionIndex, 1)
+        activeSet.value = { ...activeSet.value, questions: qs }
+        // Update summary in quizSets
+        quizSets.value = quizSets.value.map(s =>
+          s.id === quizSetId
+            ? { ...s, questions: [{ count: qs.length }] }
+            : s
+        )
+      }
+      loading.value = false
+      return true
+    }
+
+    const set = await loadQuizSet(quizSetId)
+    if (!set) { loading.value = false; return false }
+    const question = set.questions[questionIndex]
+    if (!question?.id) { loading.value = false; return false }
+
+    const { error: err } = await supabase
+      .from('questions')
+      .delete()
+      .eq('id', question.id)
+    if (err) { error.value = err.message; loading.value = false; return false }
+
+    const qs = [...activeSet.value.questions]
+    qs.splice(questionIndex, 1)
+    activeSet.value = { ...activeSet.value, questions: qs }
+    quizSets.value = quizSets.value.map(s =>
+      s.id === quizSetId
+        ? { ...s, questions: [{ count: qs.length }] }
+        : s
+    )
+    loading.value = false
+    return true
+  }
+
   return {
     quizSets, activeSet, loading, error,
     publicSets, mySets,
     fetchPublicSets, fetchMySets, loadQuizSet, importFromJSON, setActiveSet,
+    deleteQuizSet, updateQuizSet, updateQuestion, deleteQuestion,
   }
 })

@@ -63,9 +63,10 @@ import { useAuthStore } from '@/stores/authStore'
 const authStore = useAuthStore()
 
 const navLinks = [
-  { to: '/',          label: 'หน้าหลัก' },
-  { to: '/generator', label: 'สร้างข้อสอบ' },
-  { to: '/history',   label: 'ประวัติ' },
+  { to: '/',           label: 'หน้าหลัก' },
+  { to: '/generator',  label: 'สร้างข้อสอบ' },
+  { to: '/my-quizzes', label: 'ชุดข้อสอบ' },
+  { to: '/history',    label: 'ประวัติ' },
 ]
 </script>
 
