@@ -167,13 +167,15 @@ export const useBattleStore = defineStore('battle', () => {
     monsterBar.value = 0
     barReady.value   = true  // พร้อมเลย ไม่มี delay
 
-    const questions      = quizSet.value?.questions.filter(q => q.stage === stageId) ?? []
+    const questions      = (quizSet.value?.questions ?? []).filter(q => Number(q.stage) === stageId)
     stageQuestions.value = questions
     currentQIndex.value  = 0
     answeredInStage.value = 0
     correctInStage.value  = new Set()
 
-    const monHP        = calcMonsterHP(questions.length, difficulty.value)
+    const monHP        = questions.length > 0
+      ? calcMonsterHP(questions.length, difficulty.value)
+      : calcMonsterHP(4, difficulty.value)  // fallback ถ้าไม่มีข้อสอบใน stage นี้
     monsterMaxHP.value = monHP
     monsterHP.value    = monHP
     lastAnswerResult.value = null
@@ -297,10 +299,17 @@ export const useBattleStore = defineStore('battle', () => {
   function nextStage() {
     const nextId = [2, 3, 4, 5]
       .filter(id => id > currentStageId.value)
-      .find(id => quizSet.value?.questions.some(q => q.stage === id))
+      .find(id => quizSet.value?.questions.some(q => Number(q.stage) === id))
 
     if (nextId) {
       loadStage(nextId)
+      // ตรวจสอบว่า stage ใหม่มีข้อสอบจริง ถ้าไม่มีให้ skip ไป victory
+      if (stageQuestions.value.length === 0) {
+        phase.value  = 'victory'
+        result.value = 'win'
+        endedAt.value = Date.now()
+        return
+      }
       phase.value = 'player_turn'
     } else {
       phase.value  = 'victory'

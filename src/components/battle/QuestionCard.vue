@@ -61,6 +61,12 @@ const props = defineProps({
 defineEmits(['answer'])
 
 const optionsToRender = computed(() => {
-  return props.question?.options || ['', '', '', '']
+  const opts = props.question?.options
+  if (Array.isArray(opts) && opts.length === 4) return opts
+  // ป้องกันกรณี options เป็น JSON string (JSONB edge case)
+  if (typeof opts === 'string') {
+    try { return JSON.parse(opts) } catch { /* ignore */ }
+  }
+  return ['A', 'B', 'C', 'D']  // fallback ที่ไม่ให้ช่องว่าง
 })
 </script>

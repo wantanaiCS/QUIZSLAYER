@@ -9,16 +9,23 @@
     <div v-if="step === 1" class="animate-slide-up">
       <h2 class="text-xl font-bold text-qs-text mb-6">1. เลือกชุดข้อสอบ</h2>
 
-      <div v-if="quizStore.loading" class="text-center py-16 text-qs-muted">
-        กำลังโหลด...
+      <!-- Loading skeleton -->
+      <div v-if="isLoadingSets" class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div v-for="n in 3" :key="n" class="card p-5 animate-pulse">
+          <div class="h-4 bg-qs-border rounded w-3/4 mb-3"></div>
+          <div class="h-3 bg-qs-border rounded w-1/4"></div>
+        </div>
       </div>
-      <div v-else-if="quizStore.quizSets.length === 0" class="card p-12 text-center">
-        <p class="text-qs-muted mb-6">ยังไม่มีชุดข้อสอบ สร้างชุดแรกก่อนเลย!</p>
-        <router-link to="/generator" class="btn-primary">สร้างชุดข้อสอบ</router-link>
+      <div v-else-if="availableSets.length === 0" class="card p-12 text-center">
+        <p class="text-qs-muted mb-4">ยังไม่มีชุดข้อสอบ สร้างชุดแรกก่อนเลย!</p>
+        <div class="flex flex-wrap gap-3 justify-center">
+          <router-link to="/generator" class="btn-primary">สร้างชุดข้อสอบ</router-link>
+          <button class="btn-secondary" @click="reloadSets">🔄 โหลดใหม่</button>
+        </div>
       </div>
       <div v-else class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
         <div
-          v-for="set in quizStore.quizSets"
+          v-for="set in availableSets"
           :key="set.id"
           class="card-hover p-5 cursor-pointer"
           :class="{ 'border-qs-primary shadow-qs': selectedSet?.id === set.id }"
@@ -60,8 +67,12 @@
       </div>
       <div class="flex gap-4">
         <button class="btn-secondary flex-1" @click="step = 1">← กลับ</button>
-        <button class="btn-primary flex-1" :disabled="!selectedDiff" @click="startBattle">
-          ⚔️ เริ่มต่อสู้!
+        <button class="btn-primary flex-1" :disabled="!selectedDiff || loadingBattle" @click="startBattle">
+          <span v-if="loadingBattle" class="inline-flex items-center gap-2">
+            <span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+            กำลังโหลด...
+          </span>
+          <span v-else>⚔️ เริ่มต่อสู้!</span>
         </button>
       </div>
     </div>
@@ -211,6 +222,8 @@ const authStore   = useAuthStore()
 const step          = ref(1)
 const selectedSet   = ref(null)
 const selectedDiff  = ref('normal')
+const loadingBattle = ref(false)
+const isLoadingSets = ref(false)
 let gameInstance    = null
 
 // UI State for answering
@@ -226,6 +239,17 @@ const difficulties = [
   { key: 'normal', label: 'Normal', emoji: '🟡', desc: 'Cooldown 10 วิ — โหมดมาตรฐาน' },
   { key: 'hard',   label: 'Hard',   emoji: '🔴', desc: 'Cooldown 7 วิ, ดาเมจ ×2 — สำหรับสายเดือด' },
 ]
+
+// แสดงชุดข้อสอบ public ทุกชุด + private ของตัวเอง (ไม่ซ้ำ)
+const availableSets = computed(() => {
+  const userId = authStore.user?.id
+  const seen = new Set()
+  return quizStore.quizSets.filter(s => {
+    if (seen.has(s.id)) return false
+    seen.add(s.id)
+    return s.is_public || s.author_id === userId
+  })
+})
 
 const currentStageInfo = computed(() => STAGES[battleStore.currentStageId - 1] || STAGES[0])
 const currentQuestion  = computed(() => battleStore.currentQuestion)
@@ -409,10 +433,13 @@ function initPhaser() {
 async function startBattle() {
   if (!selectedSet.value) return
   
+  loadingBattle.value = true
   // Load full questions array from DB or Mock
   const fullSet = await quizStore.loadQuizSet(selectedSet.value.id)
-  if (!fullSet || !fullSet.questions) {
-    alert('ไม่สามารถโหลดข้อมูลชุดข้อสอบได้')
+  loadingBattle.value = false
+
+  if (!fullSet || !fullSet.questions?.length) {
+    alert('ไม่สามารถโหลดข้อมูลชุดข้อสอบได้ กรุณาลองใหม่อีกครั้ง')
     return
   }
   
@@ -432,15 +459,25 @@ async function startBattle() {
 // Composable is active as soon as component mounts, but it only acts when store.phase === 'player_turn'
 useBattleLoop()
 
+async function reloadSets() {
+  isLoadingSets.value = true
+  await quizStore.fetchPublicSets()
+  await quizStore.fetchMySets()
+  isLoadingSets.value = false
+}
+
 function reset() {
   battleStore.resetBattle()
   selectedSet.value = null
   selectedDiff.value = 'normal'
+  loadingBattle.value = false
   rageStageIds = new Set()
   if (gameInstance) {
     gameInstance.destroy(true)
     gameInstance = null
   }
+  // re-fetch เสมอตอนกลับมา step 1 เพื่อให้ list อัปเดต
+  reloadSets()
 }
 
 async function handleAnswer(idx) {
@@ -496,9 +533,11 @@ function handleUseSkill() {
   }
 }
 
-onMounted(() => {
-  quizStore.fetchPublicSets()
-  quizStore.fetchMySets()
+onMounted(async () => {
+  isLoadingSets.value = true
+  await quizStore.fetchPublicSets()
+  await quizStore.fetchMySets()
+  isLoadingSets.value = false
 })
 
 onUnmounted(() => {

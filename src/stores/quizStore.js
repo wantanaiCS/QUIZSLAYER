@@ -84,7 +84,7 @@ export const useQuizStore = defineStore('quiz', () => {
   const publicSets = computed(() => quizSets.value.filter(q => q.is_public))
   const mySets     = computed(() => {
     const authStore = useAuthStore()
-    return quizSets.value.filter(q => q.owner_id === authStore.user?.id)
+    return quizSets.value.filter(q => q.author_id === authStore.user?.id)
   })
 
   async function fetchPublicSets() {
@@ -110,8 +110,16 @@ export const useQuizStore = defineStore('quiz', () => {
       .eq('is_public', true)
       .order('created_at', { ascending: false })
       .limit(20)
-    if (!err) quizSets.value = data ?? []
-    else error.value = err.message
+    if (!err) {
+      // merge — อย่า overwrite private sets ที่โหลดมาแล้วจาก fetchMySets
+      const publicIds = (data ?? []).map(q => q.id)
+      quizSets.value = [
+        ...(data ?? []),
+        ...quizSets.value.filter(q => !publicIds.includes(q.id)),
+      ]
+    } else {
+      error.value = err.message
+    }
     loading.value = false
   }
 
@@ -139,6 +147,16 @@ export const useQuizStore = defineStore('quiz', () => {
   }
 
   async function loadQuizSet(quizSetId) {
+    // Cache hit: activeSet มีข้อมูลเต็ม (questions เป็น array ที่มี options จริง ไม่ใช่ count object)
+    if (
+      activeSet.value?.id === quizSetId &&
+      Array.isArray(activeSet.value?.questions) &&
+      activeSet.value.questions.length > 0 &&
+      Array.isArray(activeSet.value.questions[0]?.options)
+    ) {
+      return activeSet.value
+    }
+
     loading.value = true
     if (isMockMode && quizSetId === 'mock-1') {
       const mockData = {
@@ -178,10 +196,22 @@ export const useQuizStore = defineStore('quiz', () => {
       .select('*, questions(*)')
       .eq('id', quizSetId)
       .single()
-    if (!err) activeSet.value = data
-    else error.value = err.message
+    if (!err && data) {
+      // Normalize questions: options อาจมาเป็น JSON string จาก JSONB, stage อาจมาเป็น string
+      data.questions = (data.questions ?? []).map(q => ({
+        ...q,
+        stage: Number(q.stage),
+        options: Array.isArray(q.options)
+          ? q.options
+          : (typeof q.options === 'string' ? JSON.parse(q.options) : ['', '', '', '']),
+        correct_index: Number(q.correct_index),
+      }))
+      activeSet.value = data
+    } else if (err) {
+      error.value = err.message
+    }
     loading.value = false
-    return data
+    return activeSet.value
   }
 
   /**
