@@ -102,6 +102,7 @@ export const usePvpStore = defineStore('pvp', () => {
   const currentQIndex   = ref(0)
   const questionsAnswered = ref(0)
   const questionSeed    = ref(0)
+  const turnTimeLimit   = ref(10)    // seconds per turn; 0 = unlimited
 
   // ── RPS ──────────────────────────────────────────────────────────────────
   const rpsHost    = ref(null)
@@ -118,6 +119,35 @@ export const usePvpStore = defineStore('pvp', () => {
   const loadingRoom  = ref(false)
   const error        = ref(null)
   const lastEvent    = ref(null)     // last broadcast event for animations
+
+  // ── Turn timer ───────────────────────────────────────────────────────────
+  const turnTimeLeft = ref(0)        // countdown seconds remaining (0 = not active)
+  let turnTimer = null
+
+  function _startTurnTimer() {
+    _clearTurnTimer()
+    if (!turnTimeLimit.value || turnTimeLimit.value <= 0) return
+    turnTimeLeft.value = turnTimeLimit.value
+    turnTimer = setInterval(() => {
+      turnTimeLeft.value--
+      if (turnTimeLeft.value <= 0) {
+        _clearTurnTimer()
+        // Auto-submit wrong answer (index -1 sentinel → treated as wrong)
+        if (isMyTurn.value && status.value === 'playing') {
+          submitAnswer(-1)
+        }
+      }
+    }, 1000)
+  }
+
+  function _clearTurnTimer() {
+    if (turnTimer) { clearInterval(turnTimer); turnTimer = null }
+    turnTimeLeft.value = 0
+  }
+
+  function setTurnTimeLimit(seconds) {
+    turnTimeLimit.value = seconds
+  }
 
   // ── Realtime channel ─────────────────────────────────────────────────────
   let channel = null
@@ -293,7 +323,9 @@ export const usePvpStore = defineStore('pvp', () => {
   }
 
   function setQuizSet(questions, quizSetId) {
-    const shuffled = seededShuffle(questions, questionSeed.value)
+    // Mix in current time so every game play gets a different order
+    const runtimeSeed = (questionSeed.value + Date.now()) % 999983
+    const shuffled = seededShuffle(questions, runtimeSeed)
     allQuestions.value = shuffled
     // sync to guest
     broadcast('state_sync', fullState())
@@ -348,12 +380,24 @@ export const usePvpStore = defineStore('pvp', () => {
     rpsResult.value = result
     lastEvent.value = { type: 'rps_result', result }
 
+    if (result === 'draw') {
+      // เสมอ — รอ 2.5 วิให้เห็น UI แล้วรีเซ็ตให้เป่าใหม่
+      setTimeout(() => {
+        rpsHost.value         = null
+        rpsGuest.value        = null
+        rpsResult.value       = null
+        myRpsPick.value       = null
+        opponentRpsPick.value = null
+      }, 2500)
+      return
+    }
+
     setTimeout(() => {
-      currentTurn.value = result === 'host_win' ? 'host'
-                        : result === 'guest_win' ? 'guest'
-                        : (Math.random() > 0.5 ? 'host' : 'guest') // draw = random
+      currentTurn.value = result === 'host_win' ? 'host' : 'guest'
       status.value = 'playing'
       allQuestions.value.length > 0 && broadcast('state_sync', fullState())
+      // Start timer for whoever goes first
+      if (isMyTurn.value) _startTurnTimer()
     }, 3000)  // เพิ่มเป็น 3 วินาที + transition time
   }
 
@@ -378,9 +422,11 @@ export const usePvpStore = defineStore('pvp', () => {
   function submitAnswer(chosenIndex) {
     if (!isMyTurn.value || !currentQ.value) return
     if (isFrozen.value) return
+    _clearTurnTimer()   // stop timer as soon as answer submitted
 
     const q = currentQ.value
-    const isCorrect = chosenIndex === q.correct_index
+    // chosenIndex === -1 means time ran out → treat as wrong
+    const isCorrect = chosenIndex >= 0 && chosenIndex === q.correct_index
     revealActive.value = false
 
     let dmg = isCorrect ? DAMAGE_PER_CORRECT : DAMAGE_PER_WRONG
@@ -439,12 +485,14 @@ export const usePvpStore = defineStore('pvp', () => {
 
     // Check win
     if (hostHp.value <= 0 || guestHp.value <= 0) {
+      _clearTurnTimer()
       status.value = 'finished'
       return
     }
 
     // Lucky box?
     if (qa % LUCKY_BOX_EVERY === 0) {
+      _clearTurnTimer()
       status.value  = 'lucky_box'
       luckyCards.value  = drawLuckyCards()
       luckyPicked.value = false
@@ -457,6 +505,9 @@ export const usePvpStore = defineStore('pvp', () => {
     } else {
       currentTurn.value = currentTurn.value === 'host' ? 'guest' : 'host'
     }
+
+    // Start timer for whichever player's turn it is now
+    if (isMyTurn.value) _startTurnTimer()
   }
 
   // ─── Items ────────────────────────────────────────────────────────────────
@@ -557,6 +608,7 @@ export const usePvpStore = defineStore('pvp', () => {
     setTimeout(() => {
       status.value = 'playing'
       currentTurn.value = currentTurn.value === 'host' ? 'guest' : 'host'
+      if (isMyTurn.value) _startTurnTimer()
     }, 1500)
   }
 
@@ -602,6 +654,7 @@ export const usePvpStore = defineStore('pvp', () => {
     if (payload.questions)          allQuestions.value     = payload.questions
     if (payload.questionSeed != null) questionSeed.value   = payload.questionSeed
     if (payload.bgTheme)            bgTheme.value          = payload.bgTheme
+    if (payload.turnTimeLimit != null) turnTimeLimit.value = payload.turnTimeLimit
     if (payload.rematchVoteHost != null)  rematchVoteHost.value  = payload.rematchVoteHost
     if (payload.rematchVoteGuest != null) rematchVoteGuest.value = payload.rematchVoteGuest
   }
@@ -635,6 +688,7 @@ export const usePvpStore = defineStore('pvp', () => {
       questions:          allQuestions.value,
       questionSeed:       questionSeed.value,
       bgTheme:            bgTheme.value,
+      turnTimeLimit:      turnTimeLimit.value,
       rematchVoteHost:    rematchVoteHost.value,
       rematchVoteGuest:   rematchVoteGuest.value,
     }
@@ -671,6 +725,7 @@ export const usePvpStore = defineStore('pvp', () => {
   function leaveRoom() {
     broadcast('disconnect', { role: myRole.value })
     if (channel) { supabase.removeChannel(channel); channel = null }
+    _clearTurnTimer()
     $reset()
   }
 
@@ -723,9 +778,10 @@ export const usePvpStore = defineStore('pvp', () => {
     luckyPicked.value       = false
     rematchVoteHost.value   = false
     rematchVoteGuest.value  = false
-    // Re-shuffle questions with new seed
+    // Re-shuffle questions with new seed + runtime offset for unique order each rematch
     if (allQuestions.value.length) {
-      allQuestions.value = seededShuffle([...allQuestions.value], newSeed)
+      const runtimeSeed = (newSeed + Date.now()) % 999983
+      allQuestions.value = seededShuffle([...allQuestions.value], runtimeSeed)
     }
     status.value = 'rps'
     broadcast('state_sync', fullState())
@@ -760,6 +816,8 @@ export const usePvpStore = defineStore('pvp', () => {
     allQuestions.value   = []
     currentQIndex.value  = 0
     questionsAnswered.value = 0
+    turnTimeLimit.value  = 10
+    _clearTurnTimer()
     rpsHost.value   = null
     rpsGuest.value  = null
     rpsResult.value = null
@@ -782,6 +840,7 @@ export const usePvpStore = defineStore('pvp', () => {
     hostColor, guestColor, bgTheme,
     hostHp, guestHp, hostItems, guestItems,
     currentTurn, allQuestions, currentQIndex, questionsAnswered,
+    turnTimeLimit, turnTimeLeft,
     rpsHost, rpsGuest, rpsResult, myRpsPick,
     luckyCards, luckyPicked,
     rematchVoteHost, rematchVoteGuest,
@@ -793,6 +852,7 @@ export const usePvpStore = defineStore('pvp', () => {
     isFrozen, isFinished, winner,
     // actions
     createRoom, joinRoom, setQuizSet, setColor, setReady, setBgTheme,
+    setTurnTimeLimit,
     pickRps, submitAnswer, useItem, pickLuckyCard,
     voteRematch, leaveRoom, broadcast, fullState, $reset,
     PLAYER_COLORS, PVP_ITEMS,

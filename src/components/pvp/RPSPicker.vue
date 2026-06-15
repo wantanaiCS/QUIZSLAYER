@@ -36,6 +36,7 @@
         </div>
       </div>
       <p class="font-pixel text-base" :class="resultColor">{{ resultText }}</p>
+      <p v-if="result === 'draw'" class="text-xs text-qs-muted mt-2 animate-pulse">กำลังรีเซ็ต...</p>
     </div>
   </div>
 </template>
@@ -67,7 +68,7 @@ const pickedEmoji = computed(() => emojiMap[props.myPick] ?? '❓')
 function emojiOf(c) { return emojiMap[c] ?? '❓' }
 
 const resultText = computed(() => {
-  if (props.result === 'draw') return '🤝 เสมอ! สุ่มใหม่...'
+  if (props.result === 'draw') return '🤝 เสมอ! เป่าใหม่อีกครั้ง...'
   const winnerName = props.result === 'host_win' ? props.hostName : props.guestName
   const isMe = (props.isHost && props.result === 'host_win') ||
                (!props.isHost && props.result === 'guest_win')

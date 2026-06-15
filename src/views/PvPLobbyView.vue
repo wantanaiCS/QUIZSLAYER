@@ -53,7 +53,7 @@
         </button>
       </div>
 
-      <!-- Step 2: เลือกสี + พื้นหลัง -->
+      <!-- Step 2: เลือกสี + พื้นหลัง + เวลา -->
       <div v-else-if="createStep === 2">
         <h2 class="font-bold text-qs-text mb-3">2. เลือกสีตัวละคร</h2>
         <div class="grid grid-cols-2 gap-2 mb-4">
@@ -82,6 +82,44 @@
             <div class="text-xl">{{ bg.label.split(' ')[0] }}</div>
             <div class="text-[10px] text-qs-muted mt-0.5">{{ bg.desc }}</div>
           </button>
+        </div>
+
+        <!-- ⏱️ เวลาตอบต่อข้อ -->
+        <h2 class="font-bold text-qs-text mb-2">⏱️ เวลาตอบต่อข้อ</h2>
+        <p class="text-[11px] text-qs-muted mb-3">ถ้าหมดเวลาจะนับว่าตอบผิดทันที (0 = ไม่จำกัดเวลา)</p>
+        <div class="grid grid-cols-4 gap-2 mb-2">
+          <button
+            v-for="t in timePresets"
+            :key="t.value"
+            class="py-2 rounded-xl border-2 text-center text-xs font-bold transition-all"
+            :class="selectedTimeLimit === t.value && !customTimeActive
+              ? 'border-qs-primary bg-qs-primary/10 text-qs-primary'
+              : 'border-qs-border bg-qs-surface text-qs-muted hover:border-qs-primary/50'"
+            @click="selectedTimeLimit = t.value; customTimeActive = false"
+          >
+            {{ t.label }}
+          </button>
+        </div>
+        <div class="flex items-center gap-2 mb-5">
+          <button
+            class="py-2 px-3 rounded-xl border-2 text-sm font-bold transition-all whitespace-nowrap"
+            :class="customTimeActive
+              ? 'border-qs-accent bg-qs-accent/10 text-qs-accent'
+              : 'border-qs-border bg-qs-surface text-qs-muted hover:border-qs-accent/50'"
+            @click="customTimeActive = true"
+          >
+            กำหนดเอง
+          </button>
+          <input
+            v-if="customTimeActive"
+            v-model.number="customTimeValue"
+            type="number"
+            min="3"
+            max="600"
+            placeholder="วินาที"
+            class="flex-1 px-3 py-2 bg-qs-surface border border-qs-border rounded-xl text-qs-text text-sm focus:outline-none focus:border-qs-accent"
+          />
+          <span v-if="customTimeActive" class="text-xs text-qs-muted">วินาที</span>
         </div>
 
         <button class="btn-primary w-full" @click="handleCreate">
@@ -213,6 +251,20 @@ const joinCode      = ref('')
 const copied        = ref(false)
 const isLoadingSets = ref(false)
 
+// Timer presets
+const timePresets = [
+  { label: '∞ ไม่จำกัด', value: 0   },
+  { label: '5 วิ',        value: 5   },
+  { label: '10 วิ',       value: 10  },
+  { label: '20 วิ',       value: 20  },
+  { label: '30 วิ',       value: 30  },
+  { label: '60 วิ',       value: 60  },
+  { label: '3 นาที',      value: 180 },
+]
+const selectedTimeLimit = ref(10)   // default 10s
+const customTimeActive  = ref(false)
+const customTimeValue   = ref(30)
+
 const bgOptions = PVP_BG_OPTIONS
 
 const availableSets = computed(() => {
@@ -237,6 +289,11 @@ async function handleCreate() {
   if (code) {
     pvp.setColor(selectedColor.value)
     pvp.setBgTheme(selectedBg.value)
+    // Apply timer setting
+    const limit = customTimeActive.value
+      ? Math.max(3, customTimeValue.value || 10)
+      : selectedTimeLimit.value
+    pvp.setTurnTimeLimit(limit)
     // โหลด quiz set แล้ว cache ไว้ใน store (จะ sync ไป guest เมื่อเกมเริ่ม)
     const fullSet = await quizStore.loadQuizSet(selectedSet.value.id)
     if (fullSet?.questions?.length) {
@@ -249,6 +306,7 @@ async function handleCreate() {
 async function handleJoin() {
   const ok = await pvp.joinRoom(joinCode.value)
   if (ok) {
+    joinCode.value = ''   // clear input so it doesn't persist
     pvp.setColor(selectedColor.value)
     pvp.setReady()
   }

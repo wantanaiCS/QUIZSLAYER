@@ -123,7 +123,6 @@
   /* --- Quiz Answer Options --- */
   .answer-option {
     @apply card w-full text-left px-5 py-4 rounded-qs cursor-pointer transition-all duration-200;
-    @apply hover:border-qs-primary hover:bg-qs-surface hover:shadow-qs;
     @apply active:scale-98;
   }
   .answer-option.correct {
@@ -154,6 +153,15 @@
   .pixel {
     image-rendering: pixelated;
     image-rendering: crisp-edges;
+  }
+}
+
+/* === Hover fix: only apply on real pointer devices (prevents sticky hover on mobile/touch) === */
+@media (hover: hover) and (pointer: fine) {
+  .answer-option:hover {
+    border-color: var(--color-qs-primary, #6c63ff);
+    background-color: var(--color-qs-surface, #1a1e30);
+    box-shadow: 0 0 12px rgba(108, 99, 255, 0.25);
   }
 }
 

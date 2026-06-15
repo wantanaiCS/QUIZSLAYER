@@ -214,76 +214,93 @@ export const useQuizStore = defineStore('quiz', () => {
     return activeSet.value
   }
 
-  /**
-   * Import a JSON array of questions (from AI generator) as a new quiz set
-   * @param {string} title
-   * @param {Array} questions  - raw AI output array
-   */
-  async function importFromJSON(title, questions) {
-    const authStore = useAuthStore()
-    if (!authStore.user) return null
-    if (!Array.isArray(questions) || questions.length === 0) throw new Error('JSON must be a non-empty array')
-    questions.forEach((q, index) => {
-      // รองรับทั้ง "question" (จาก AI) และ "question_text" (internal format)
-      const questionText = q.question ?? q.question_text
-      if (typeof questionText !== 'string' || !questionText.trim()) {
-        throw new Error(`Invalid question at index ${index}: missing "question" field`)
-      }
-      if (!Array.isArray(q.options) || q.options.length !== 4) {
-        throw new Error(`Invalid question at index ${index}: options must be array of 4`)
-      }
-      if (!Number.isInteger(q.correct_index) || q.correct_index < 0 || q.correct_index > 3) {
-        throw new Error(`Invalid question at index ${index}: correct_index must be 0-3`)
-      }
-    })
-    loading.value = true
+/**
+ * Import a JSON array of questions (from AI generator) as a new quiz set
+ * @param {string} title
+ * @param {Array} questions  - raw AI output array
+ */
+async function importFromJSON(title, questions) {
+  const authStore = useAuthStore()
+  if (!authStore.user) return null
+  if (!Array.isArray(questions) || questions.length === 0) throw new Error('JSON must be a non-empty array')
+  questions.forEach((q, index) => {
+    // รองรับทั้ง "question" (จาก AI) และ "question_text" (internal format)
+    const questionText = q.question ?? q.question_text
+    if (typeof questionText !== 'string' || !questionText.trim()) {
+      throw new Error(`Invalid question at index ${index}: missing "question" field`)
+    }
+    if (!Array.isArray(q.options) || q.options.length !== 4) {
+      throw new Error(`Invalid question at index ${index}: options must be array of 4`)
+    }
+    if (!Number.isInteger(q.correct_index) || q.correct_index < 0 || q.correct_index > 3) {
+      throw new Error(`Invalid question at index ${index}: correct_index must be 0-3`)
+    }
+  })
+  loading.value = true
 
-    // Assign stages evenly (5 stages)
-    const perStage = Math.max(1, Math.ceil(questions.length / 5))
-    const formattedQuestions = questions.map((q, i) => ({
+  // Assign stages evenly (5 stages)
+  const perStage = Math.max(1, Math.ceil(questions.length / 5))
+
+  // Shuffle options to distribute correct_index evenly (prevents all-A answers)
+  function shuffleOptions(q) {
+    const opts = [...q.options]
+    const correctAnswer = opts[q.correct_index]
+    // Fisher-Yates shuffle
+    for (let i = opts.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [opts[i], opts[j]] = [opts[j], opts[i]]
+    }
+    const newCorrectIndex = opts.indexOf(correctAnswer)
+    return { options: opts, correct_index: newCorrectIndex }
+  }
+
+  const formattedQuestions = questions.map((q, i) => {
+    const { options, correct_index } = shuffleOptions(q)
+    return {
       stage:         Math.min(5, Math.floor(i / perStage) + 1),
       question_text: q.question ?? q.question_text,
-      options:       q.options,
-      correct_index: q.correct_index,
+      options,
+      correct_index,
       explanation:   q.explanation ?? null,
-    }))
-
-    if (isMockMode) {
-      const mockId = 'mock-' + Date.now()
-      const newMockSet = {
-        id: mockId,
-        title,
-        is_public: false,
-        author_id: authStore.user.id,
-        questions: formattedQuestions
-      }
-      const storedSets = readStoredMockSets().filter(set => set.id !== mockId)
-      writeStoredMockSets([newMockSet, ...storedSets])
-      quizSets.value.push(toQuizSetSummary(newMockSet))
-      activeSet.value = newMockSet
-      loading.value = false
-      return newMockSet
     }
+  })
 
-    // Create quiz_set first
-    const { data: setData, error: setErr } = await supabase
-      .from('quiz_sets')
-      .insert({ title, author_id: authStore.user.id, is_public: false })
-      .select()
-      .single()
-    if (setErr) { error.value = setErr.message; loading.value = false; return null }
-
-    const rows = formattedQuestions.map(q => ({
-      quiz_set_id: setData.id,
-      ...q
-    }))
-
-    const { error: qErr } = await supabase.from('questions').insert(rows)
-    if (qErr) { error.value = qErr.message; loading.value = false; return null }
-
+  if (isMockMode) {
+    const mockId = 'mock-' + Date.now()
+    const newMockSet = {
+      id: mockId,
+      title,
+      is_public: false,
+      author_id: authStore.user.id,
+      questions: formattedQuestions
+    }
+    const storedSets = readStoredMockSets().filter(set => set.id !== mockId)
+    writeStoredMockSets([newMockSet, ...storedSets])
+    quizSets.value.push(toQuizSetSummary(newMockSet))
+    activeSet.value = newMockSet
     loading.value = false
-    return setData
+    return newMockSet
   }
+
+  // Create quiz_set first
+  const { data: setData, error: setErr } = await supabase
+    .from('quiz_sets')
+    .insert({ title, author_id: authStore.user.id, is_public: false })
+    .select()
+    .single()
+  if (setErr) { error.value = setErr.message; loading.value = false; return null }
+
+  const rows = formattedQuestions.map(q => ({
+    quiz_set_id: setData.id,
+    ...q
+  }))
+
+  const { error: qErr } = await supabase.from('questions').insert(rows)
+  if (qErr) { error.value = qErr.message; loading.value = false; return null }
+
+  loading.value = false
+  return setData
+}
 
   function setActiveSet(set) {
     activeSet.value = set

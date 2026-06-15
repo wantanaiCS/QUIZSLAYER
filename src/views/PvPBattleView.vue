@@ -153,10 +153,33 @@
             </button>
           </div>
 
-          <!-- Not your turn hint -->
+          <!-- Turn timer countdown bar (only shows when timer is active) -->
+          <div v-if="pvp.isMyTurn && pvp.status === 'playing' && pvp.turnTimeLimit > 0 && pvp.turnTimeLeft > 0"
+               class="mt-3">
+            <div class="flex justify-between items-center mb-1">
+              <span class="text-[10px] text-qs-muted">⏱️ เวลาที่เหลือ</span>
+              <span class="text-xs font-pixel"
+                    :class="pvp.turnTimeLeft <= 5 ? 'text-qs-danger animate-pulse' : 'text-qs-accent'">
+                {{ pvp.turnTimeLeft }}s
+              </span>
+            </div>
+            <div class="h-1.5 bg-qs-bg rounded-full overflow-hidden border border-qs-border">
+              <div
+                class="h-full rounded-full transition-all duration-1000 ease-linear"
+                :class="timerBarColor"
+                :style="{ width: timerPct + '%' }"
+              ></div>
+            </div>
+          </div>
+
+          <!-- Opponent waiting hint -->
           <p v-if="!pvp.isMyTurn && pvp.status === 'playing'"
              class="text-center text-xs text-qs-muted mt-4 animate-pulse">
             ⏳ รอ {{ pvp.oppName }} ตอบ...
+            <span v-if="pvp.turnTimeLimit > 0 && pvp.turnTimeLeft > 0"
+                  class="ml-1 font-pixel text-qs-accent">
+              {{ pvp.turnTimeLeft }}s
+            </span>
           </p>
 
         </div>
@@ -183,6 +206,7 @@ const quizStore = useQuizStore()
 
 const showResult  = ref(false)
 const selectedIdx = ref(null)
+const isSubmitting = ref(false)   // guard against double-submit
 let gameInstance  = null
 
 const labels  = ['A', 'B', 'C', 'D']
@@ -192,6 +216,7 @@ const canAnswer = computed(() =>
   pvp.isMyTurn &&
   pvp.status === 'playing' &&
   !showResult.value &&
+  !isSubmitting.value &&
   !pvp.isFrozen
 )
 
@@ -206,6 +231,17 @@ const luckyBoxCountdown = computed(() => {
   return Math.max(0, next - pvp.questionsAnswered)
 })
 
+const timerPct = computed(() => {
+  if (!pvp.turnTimeLimit) return 100
+  return Math.max(0, (pvp.turnTimeLeft / pvp.turnTimeLimit) * 100)
+})
+
+const timerBarColor = computed(() => {
+  if (timerPct.value > 50) return 'bg-qs-success'
+  if (timerPct.value > 25) return 'bg-yellow-400'
+  return 'bg-qs-danger'
+})
+
 function optionClass(idx) {
   if (!showResult.value) return ''
   if (idx === pvp.currentQ?.correct_index) return 'correct'
@@ -215,6 +251,7 @@ function optionClass(idx) {
 
 async function handleAnswer(idx) {
   if (!canAnswer.value) return
+  isSubmitting.value = true    // lock immediately to prevent double-submit
   selectedIdx.value = idx
   showResult.value  = true
 
@@ -223,6 +260,7 @@ async function handleAnswer(idx) {
     pvp.submitAnswer(idx)
     showResult.value  = false
     selectedIdx.value = null
+    isSubmitting.value = false
 
     // Phaser animation - p1 = me (left), p2 = opponent (right)
     const scene = gameInstance?.scene.getScene('PvPScene')
@@ -241,9 +279,10 @@ async function handleAnswer(idx) {
 // Watch status changes (RPS → Playing transition)
 watch(() => pvp.status, (newStatus) => {
   if (newStatus === 'rps') {
-    // Reset per-round UI state on rematch
+    // Reset per-round UI state on rematch or RPS draw retry
     showResult.value  = false
     selectedIdx.value = null
+    isSubmitting.value = false
   }
   if (newStatus === 'playing' && gameInstance) {
     const scene = gameInstance?.scene.getScene('PvPScene')

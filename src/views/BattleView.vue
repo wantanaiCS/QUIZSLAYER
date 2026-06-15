@@ -263,6 +263,7 @@ let gameInstance    = null
 // UI State for answering
 const showResult = ref(false)
 const selectedIndex = ref(null)
+const isSubmitting = ref(false)   // guard against double-submit
 const hiddenOptions = ref([])
 let mechanicsTimer = null
 let rageStageIds = new Set()
@@ -517,8 +518,9 @@ function reset() {
 }
 
 async function handleAnswer(idx) {
-  if (battleStore.phase !== 'player_turn' || showResult.value) return
-  
+  if (battleStore.phase !== 'player_turn' || showResult.value || isSubmitting.value) return
+
+  isSubmitting.value = true   // lock immediately
   selectedIndex.value = idx
   showResult.value = true
   battleStore.cooldownActive = false // Stop timer
@@ -553,6 +555,7 @@ async function handleAnswer(idx) {
     
     showResult.value = false
     selectedIndex.value = null
+    isSubmitting.value = false
   }, 1500)
 }
 

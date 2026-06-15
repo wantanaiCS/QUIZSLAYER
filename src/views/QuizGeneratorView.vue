@@ -412,6 +412,7 @@ Generate exactly ${numQuestions.value} multiple choice questions based on the co
 Rules:
 - Each question must have exactly 4 options (index 0-3)
 - correct_index is 0-based (0=A, 1=B, 2=C, 3=D)
+- IMPORTANT: Distribute correct_index randomly across all questions. Do NOT always use index 0. Aim for roughly equal distribution: ~25% each for index 0, 1, 2, 3.
 - Distribute difficulty: ${getDifficultyDist()}
 - Return ONLY a valid JSON array. No explanation. No markdown. No extra text.
 - ${langNote}
