@@ -9,11 +9,7 @@
 
     <!-- Step Indicator -->
     <div class="flex items-center justify-center gap-2 mb-10 text-xs font-medium">
-      <div
-        v-for="(step, i) in steps"
-        :key="i"
-        class="flex items-center gap-2"
-      >
+      <div v-for="(step, i) in steps" :key="i" class="flex items-center gap-2">
         <div
           class="w-7 h-7 rounded-full flex items-center justify-center font-bold transition-all"
           :class="currentStep > i
@@ -31,162 +27,183 @@
     </div>
 
     <!-- ─── Step 0: ตั้งค่า ─────────────────────────── -->
-    <div v-if="currentStep === 0" class="card p-8 animate-slide-up">
-      <!-- Mode tabs -->
-      <div class="flex gap-2 mb-8 p-1 bg-qs-surface rounded-qs border border-qs-border w-fit">
-        <button
-          v-for="mode in modes"
-          :key="mode.key"
-          class="px-5 py-2 rounded-[9px] text-sm font-medium transition-all"
-          :class="activeMode === mode.key
-            ? 'bg-qs-primary text-white shadow-qs'
-            : 'text-qs-muted hover:text-qs-text'"
-          @click="activeMode = mode.key"
-        >
-          {{ mode.label }}
-        </button>
+    <div v-if="currentStep === 0" class="card p-8 animate-slide-up space-y-6">
+
+      <!-- หัวข้อ -->
+      <div>
+        <label class="block text-sm font-medium text-qs-muted mb-2">
+          หัวข้อ / Topic <span class="text-qs-danger">*</span>
+        </label>
+        <input
+          v-model="topic"
+          type="text"
+          placeholder="เช่น: ประวัติศาสตร์ไทย, Python Programming, Organic Chemistry"
+          class="w-full px-4 py-3 bg-qs-surface border border-qs-border rounded-qs text-qs-text placeholder-qs-muted focus:outline-none focus:border-qs-primary transition-colors"
+          @keydown.enter="goToStep1"
+        />
       </div>
 
-      <!-- Topic Mode -->
-      <div v-if="activeMode === 'topic'" class="space-y-5">
-        <div>
-          <label class="block text-sm font-medium text-qs-muted mb-2">หัวข้อ / Topic <span class="text-qs-danger">*</span></label>
-          <input
-            v-model="topic"
-            type="text"
-            placeholder="เช่น: ประวัติศาสตร์ไทย, Python Programming, Organic Chemistry"
-            class="w-full px-4 py-3 bg-qs-surface border border-qs-border rounded-qs text-qs-text placeholder-qs-muted focus:outline-none focus:border-qs-primary transition-colors"
-            @keydown.enter="goToStep1"
-          />
-        </div>
+      <!-- รายละเอียดเพิ่มเติม -->
+      <div>
+        <label class="block text-sm font-medium text-qs-muted mb-2">
+          รายละเอียดเพิ่มเติม
+          <span class="text-xs font-normal text-qs-muted ml-1">(Optional)</span>
+        </label>
+        <textarea
+          v-model="topicDetails"
+          rows="3"
+          placeholder="ระบุหัวข้อย่อย, ขอบเขต, หรือข้อกำหนดพิเศษ&#10;เช่น: เน้นสาเหตุและผลกระทบ, ไม่รวมเหตุการณ์ในเอเชีย"
+          class="w-full px-4 py-3 bg-qs-surface border border-qs-border rounded-qs text-qs-text placeholder-qs-muted focus:outline-none focus:border-qs-primary transition-colors resize-none"
+        ></textarea>
+        <p class="text-xs text-qs-muted mt-1">💡 ยิ่งระบุละเอียด AI จะสร้างข้อสอบได้ตรงกว่า</p>
+      </div>
 
-        <!-- รายละเอียดเพิ่มเติม (Optional) -->
+      <!-- ─── แหล่งข้อมูล (Optional toggle) ─── -->
+      <div class="border border-qs-border rounded-qs overflow-hidden">
+        <!-- Toggle header -->
+        <button
+          class="w-full flex items-center justify-between px-4 py-3 bg-qs-surface hover:bg-qs-surface/80 transition-colors text-left"
+          @click="useSourceFile = !useSourceFile"
+        >
+          <div class="flex items-center gap-3">
+            <span class="text-lg">📁</span>
+            <div>
+              <p class="text-sm font-medium text-qs-text">มีไฟล์แหล่งข้อมูล</p>
+              <p class="text-xs text-qs-muted">ระบุชื่อไฟล์ให้ AI ออกข้อสอบจากเนื้อหาไฟล์นั้น</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 flex-shrink-0">
+            <span v-if="useSourceFile" class="text-xs text-qs-success font-medium">✓ เปิดใช้งาน</span>
+            <span v-else class="text-xs text-qs-muted">Optional</span>
+            <div class="w-10 h-5 rounded-full transition-colors flex-shrink-0" :class="useSourceFile ? 'bg-qs-primary' : 'bg-qs-border'">
+              <div class="w-4 h-4 bg-white rounded-full mt-0.5 transition-transform shadow" :class="useSourceFile ? 'translate-x-5' : 'translate-x-0.5'"></div>
+            </div>
+          </div>
+        </button>
+
+        <!-- Content when toggle ON -->
+        <div v-if="useSourceFile" class="p-4 border-t border-qs-border space-y-4">
+
+          <!-- คำแนะนำการใช้งาน -->
+          <div class="rounded-qs bg-qs-bg border border-qs-border p-4 space-y-3 text-xs">
+            <p class="font-semibold text-qs-text text-sm">📖 วิธีใช้งาน</p>
+
+            <div class="space-y-2 text-qs-muted">
+              <div class="flex gap-2">
+                <span class="text-qs-primary font-bold flex-shrink-0">1.</span>
+                <p>กด <span class="text-qs-text font-medium">✨ สร้าง Master Prompt</span> — ระบบจะเพิ่มคำสั่งใน Prompt ให้ AI อ่านเนื้อหาจากไฟล์ที่คุณแนบ</p>
+              </div>
+              <div class="flex gap-2">
+                <span class="text-qs-primary font-bold flex-shrink-0">2.</span>
+                <p>เปิด AI ที่ต้องการ → <strong class="text-qs-warning">อัปโหลดหรือแนบไฟล์ของคุณก่อน</strong> (PDF, Word, สไลด์ ฯลฯ)</p>
+              </div>
+              <div class="flex gap-2">
+                <span class="text-qs-primary font-bold flex-shrink-0">3.</span>
+                <p>กด <span class="text-qs-text font-medium">📋 Copy</span> แล้ววาง Prompt — AI จะสร้างข้อสอบจากเนื้อหาในไฟล์โดยตรง</p>
+              </div>
+            </div>
+
+            <!-- AI ที่รองรับ file upload -->
+            <div class="pt-2 border-t border-qs-border">
+              <p class="font-medium text-qs-text mb-2">AI ที่รองรับการอัปโหลดไฟล์:</p>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div v-for="ai in aiWithFileSupport" :key="ai.name"
+                  class="flex items-start gap-2 p-2 rounded-qs bg-qs-surface border border-qs-border">
+                  <span class="flex-shrink-0">{{ ai.icon }}</span>
+                  <div>
+                    <p class="font-medium text-qs-text">{{ ai.name }}</p>
+                    <p class="text-qs-muted text-[10px] leading-relaxed">{{ ai.note }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── Settings grid ─── -->
+      <div class="grid sm:grid-cols-2 gap-4">
         <div>
           <label class="block text-sm font-medium text-qs-muted mb-2">
-            รายละเอียดเพิ่มเติม <span class="text-xs text-qs-muted font-normal">(Optional — สำหรับ Topic ที่ซับซ้อน)</span>
+            จำนวนข้อ <span class="text-xs font-normal ml-1">(1–100)</span>
           </label>
-          <textarea
-            v-model="topicDetails"
-            rows="4"
-            placeholder="ระบุหัวข้อย่อย, ขอบเขต, หรือข้อกำหนดพิเศษ&#10;เช่น:&#10;- สงครามโลกครั้งที่ 1-2&#10;- เน้นสาเหตุและผลกระทบ&#10;- ไม่รวมเหตุการณ์ในเอเชีย"
-            class="w-full px-4 py-3 bg-qs-surface border border-qs-border rounded-qs text-qs-text placeholder-qs-muted focus:outline-none focus:border-qs-primary transition-colors resize-none"
-          ></textarea>
-          <p class="text-xs text-qs-muted mt-1">💡 ยิ่งระบุละเอียด AI จะสร้างข้อสอบได้ตรงกับความต้องการมากขึ้น</p>
+          <input
+            v-model.number="numQuestions"
+            type="number" min="1" max="100" placeholder="20"
+            class="w-full px-4 py-3 bg-qs-surface border border-qs-border rounded-qs text-qs-text placeholder-qs-muted focus:outline-none focus:border-qs-primary transition-colors"
+            @input="clampNumQuestions"
+          />
+          <p class="text-xs mt-1.5 transition-colors" :class="questionCountHint.color">{{ questionCountHint.text }}</p>
         </div>
-
-        <div class="grid sm:grid-cols-3 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-qs-muted mb-2">จำนวนข้อ</label>
-            <select v-model="numQuestions" class="w-full px-4 py-3 bg-qs-surface border border-qs-border rounded-qs text-qs-text focus:outline-none focus:border-qs-primary">
-              <option v-for="n in [10, 15, 20, 25, 30, 50]" :key="n" :value="n">{{ n }} ข้อ</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-qs-muted mb-2">ภาษา</label>
-            <select v-model="lang" class="w-full px-4 py-3 bg-qs-surface border border-qs-border rounded-qs text-qs-text focus:outline-none focus:border-qs-primary">
-              <option value="thai">ภาษาไทย</option>
-              <option value="english">English</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-qs-muted mb-2">ความยาก</label>
-            <select v-model="difficulty" class="w-full px-4 py-3 bg-qs-surface border border-qs-border rounded-qs text-qs-text focus:outline-none focus:border-qs-primary">
-              <option value="mixed">Mixed (แนะนำ)</option>
-              <option value="easy">Easy</option>
-              <option value="normal">Normal</option>
-              <option value="hard">Hard</option>
-            </select>
-          </div>
+        <div>
+          <label class="block text-sm font-medium text-qs-muted mb-2">ภาษา</label>
+          <select v-model="lang" class="w-full px-4 py-3 bg-qs-surface border border-qs-border rounded-qs text-qs-text focus:outline-none focus:border-qs-primary">
+            <option value="thai">ภาษาไทย</option>
+            <option value="english">English</option>
+          </select>
         </div>
-
-        <button class="btn-primary w-full py-4" :disabled="!topic.trim()" @click="goToStep1">
-          ✨ สร้าง Master Prompt →
-        </button>
-      </div>
-
-      <!-- Document Mode -->
-      <div v-else class="space-y-5">
-        <div
-          class="border-2 border-dashed border-qs-border rounded-qs p-12 text-center transition-colors cursor-pointer"
-          :class="isDragging ? 'border-qs-primary bg-qs-primary/5' : 'hover:border-qs-primary/50'"
-          @dragover.prevent="isDragging = true"
-          @dragleave="isDragging = false"
-          @drop.prevent="handleFileDrop"
-          @click="fileInput?.click()"
-        >
-          <div class="text-4xl mb-4">{{ docFile ? '📄' : '📁' }}</div>
-          <p v-if="docFile" class="text-qs-text font-medium mb-1">{{ docFile.name }}</p>
-          <p v-if="docFile" class="text-qs-muted text-xs">{{ (docFile.size / 1024).toFixed(1) }} KB — คลิกเพื่อเปลี่ยน</p>
-          <p v-else class="text-qs-muted mb-2">ลาก TXT / PDF มาวาง หรือคลิกเพื่อเลือกไฟล์</p>
-          <p v-if="!docFile" class="text-qs-muted text-xs">รองรับ .txt | .pdf (ขนาดไม่เกิน 2 MB)</p>
-          <input ref="fileInput" type="file" accept=".txt,.pdf" class="hidden" @change="handleFileSelect" />
+        <div>
+          <label class="block text-sm font-medium text-qs-muted mb-2">ความยาก</label>
+          <select v-model="difficulty" class="w-full px-4 py-3 bg-qs-surface border border-qs-border rounded-qs text-qs-text focus:outline-none focus:border-qs-primary">
+            <option value="mixed">Mixed (แนะนำ)</option>
+            <option value="easy">Easy</option>
+            <option value="normal">Normal</option>
+            <option value="hard">Hard</option>
+          </select>
         </div>
-
-        <div v-if="docFile" class="grid sm:grid-cols-3 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-qs-muted mb-2">จำนวนข้อ</label>
-            <select v-model="numQuestions" class="w-full px-4 py-3 bg-qs-surface border border-qs-border rounded-qs text-qs-text focus:outline-none focus:border-qs-primary">
-              <option v-for="n in [10, 15, 20, 25, 30]" :key="n" :value="n">{{ n }} ข้อ</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-qs-muted mb-2">ภาษา</label>
-            <select v-model="lang" class="w-full px-4 py-3 bg-qs-surface border border-qs-border rounded-qs text-qs-text focus:outline-none focus:border-qs-primary">
-              <option value="thai">ภาษาไทย</option>
-              <option value="english">English</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-qs-muted mb-2">ความยาก</label>
-            <select v-model="difficulty" class="w-full px-4 py-3 bg-qs-surface border border-qs-border rounded-qs text-qs-text focus:outline-none focus:border-qs-primary">
-              <option value="mixed">Mixed (แนะนำ)</option>
-              <option value="easy">Easy</option>
-              <option value="normal">Normal</option>
-              <option value="hard">Hard</option>
-            </select>
-          </div>
-        </div>
-
-        <button v-if="docFile" class="btn-primary w-full py-4" @click="goToStep1Doc">
-          ✨ สร้าง Master Prompt จากเอกสาร →
-        </button>
-
-        <div v-if="docError" class="p-3 rounded-qs bg-red-900/20 border border-qs-danger text-qs-danger text-sm">
-          {{ docError }}
+        <div>
+          <label class="block text-sm font-medium text-qs-muted mb-2">คำอธิบายเฉลย</label>
+          <select v-model="explanationLength" class="w-full px-4 py-3 bg-qs-surface border border-qs-border rounded-qs text-qs-text focus:outline-none focus:border-qs-primary">
+            <option value="short">สั้น — 1 ประโยค (ประหยัด Token)</option>
+            <option value="long">ยาว — อ่านแล้วเข้าใจได้เลย</option>
+          </select>
+          <p class="text-xs text-qs-muted mt-1.5">
+            {{ explanationLength === 'short' ? '💡 เหมาะสำหรับทบทวนเร็วๆ' : '📖 อธิบายเหตุผล + บริบทครบ' }}
+          </p>
         </div>
       </div>
+
+      <button class="btn-primary w-full py-4" :disabled="!topic.trim()" @click="goToStep1">
+        ✨ สร้าง Master Prompt →
+      </button>
     </div>
 
     <!-- ─── Step 1: Prompt ──────────────────────────── -->
     <div v-if="currentStep === 1" class="space-y-6 animate-slide-up">
       <div class="card p-6">
         <div class="flex items-center justify-between mb-4">
-          <h3 class="font-bold text-qs-text">📋 Master Prompt — Copy ไปวางใน AI</h3>
-          <div class="flex gap-2">
-            <button 
-              class="btn-secondary text-xs px-3 py-1.5"
-              @click="showFullPrompt = !showFullPrompt"
-            >
+          <div>
+            <h3 class="font-bold text-qs-text">📋 Master Prompt — Copy ไปวางใน AI</h3>
+            <p class="text-xs text-qs-muted mt-0.5">
+              หัวข้อ: <span class="text-qs-text">{{ topic }}</span>
+              <span v-if="useSourceFile" class="ml-2 text-qs-success">· 📁 ใช้ไฟล์แหล่งข้อมูล</span>
+            </p>
+          </div>
+          <div class="flex gap-2 flex-shrink-0">
+            <button class="btn-secondary text-xs px-3 py-1.5" @click="showFullPrompt = !showFullPrompt">
               {{ showFullPrompt ? '📦 ย่อลง' : '📖 ดูเต็ม' }}
             </button>
-            <button class="btn-secondary text-xs px-3 py-1.5 gap-1.5" @click="copyPrompt">
+            <button class="btn-secondary text-xs px-3 py-1.5" @click="copyPrompt">
               {{ copied ? '✅ Copied!' : '📋 Copy' }}
             </button>
           </div>
         </div>
-        
-        <!-- แสดง Prompt แบบย่อ หรือ เต็ม -->
-        <div v-if="!showFullPrompt" class="bg-qs-bg rounded-qs p-4 text-xs text-qs-muted">
-          <div class="space-y-2">
-            <p><span class="text-qs-text font-medium">หัวข้อ:</span> {{ topic || 'Document-based' }}</p>
-            <p v-if="topicDetails"><span class="text-qs-text font-medium">รายละเอียด:</span> {{ topicDetails.substring(0, 100) }}{{ topicDetails.length > 100 ? '...' : '' }}</p>
-            <p><span class="text-qs-text font-medium">จำนวน:</span> {{ numQuestions }} ข้อ | <span class="text-qs-text font-medium">ภาษา:</span> {{ lang === 'thai' ? 'ไทย' : 'English' }} | <span class="text-qs-text font-medium">ความยาก:</span> {{ difficulty }}</p>
-            <div class="mt-3 pt-3 border-t border-qs-border text-center">
-              <p class="text-qs-muted">กด "ดูเต็ม" เพื่อดู Prompt ทั้งหมด หรือกด "Copy" เพื่อ copy ไปใช้เลย</p>
-            </div>
-          </div>
+
+        <!-- Prompt summary / full -->
+        <div v-if="!showFullPrompt" class="bg-qs-bg rounded-qs p-4 text-xs text-qs-muted space-y-1.5">
+          <p><span class="text-qs-text font-medium">หัวข้อ:</span> {{ topic }}</p>
+          <p v-if="topicDetails"><span class="text-qs-text font-medium">รายละเอียด:</span> {{ topicDetails.substring(0, 120) }}{{ topicDetails.length > 120 ? '...' : '' }}</p>
+          <p v-if="useSourceFile"><span class="text-qs-text font-medium">โหมด:</span> ใช้ไฟล์แหล่งข้อมูล</p>
+          <p><span class="text-qs-text font-medium">จำนวน:</span> {{ numQuestions }} ข้อ · <span class="text-qs-text font-medium">ภาษา:</span> {{ lang === 'thai' ? 'ไทย' : 'English' }} · <span class="text-qs-text font-medium">ความยาก:</span> {{ difficulty }}</p>
+          <div class="pt-2 border-t border-qs-border text-center">กด "ดูเต็ม" เพื่อดู Prompt ทั้งหมด หรือ "Copy" เพื่อใช้งานเลย</div>
         </div>
         <pre v-else class="bg-qs-bg rounded-qs p-4 text-xs text-qs-muted overflow-x-auto whitespace-pre-wrap leading-relaxed select-all">{{ generatedPrompt }}</pre>
+
+        <!-- Reminder: upload file to AI before sending -->
+        <div v-if="useSourceFile" class="mt-3 p-3 rounded-qs bg-qs-primary/10 border border-qs-primary/40 text-xs text-qs-text space-y-1">
+          <p class="font-semibold">📁 Prompt นี้ตั้งค่าให้ใช้ไฟล์แหล่งข้อมูล</p>
+          <p class="text-qs-muted">อย่าลืม: <strong class="text-qs-warning">อัปโหลดหรือแนบไฟล์ใน AI ก่อน</strong> แล้วค่อยวาง Prompt — AI จะอ่านไฟล์และสร้างข้อสอบจากเนื้อหานั้นโดยตรง</p>
+        </div>
       </div>
 
       <!-- AI Links -->
@@ -194,42 +211,30 @@
         <p class="text-sm font-medium text-qs-text mb-3">วาง Prompt ใน AI ที่ต้องการ:</p>
         <div class="flex flex-wrap gap-3">
           <a
-            v-for="ai in aiLinks"
-            :key="ai.name"
-            :href="ai.url"
-            target="_blank"
-            rel="noopener noreferrer"
+            v-for="ai in aiLinks" :key="ai.name"
+            :href="ai.url" target="_blank" rel="noopener noreferrer"
             class="btn-secondary text-xs px-4 py-2 gap-2"
-          >
-            {{ ai.icon }} {{ ai.name }}
-          </a>
+          >{{ ai.icon }} {{ ai.name }}</a>
         </div>
-        <p class="text-xs text-qs-muted mt-3">1. คลิก Copy ด้านบน → 2. เปิด AI → 3. วาง → 4. รับ JSON กลับมา</p>
+        <p class="text-xs text-qs-muted mt-3">1. Copy Prompt → 2. เปิด AI → 3. วาง → 4. รับ JSON กลับมา</p>
       </div>
 
       <!-- JSON Import -->
       <div class="card p-6">
         <h3 class="font-bold text-qs-text mb-4">📥 วาง JSON ที่ได้จาก AI</h3>
-
         <div v-if="importError" class="mb-4 p-3 rounded-qs bg-red-900/20 border border-qs-danger text-qs-danger text-sm">
           ❌ {{ importError }}
         </div>
-
         <textarea
           v-model="jsonInput"
           rows="8"
-          placeholder='วาง JSON array ที่ได้จาก AI ที่นี่...\n\n[\n  {\n    "question": "คำถาม...",\n    "options": ["ตัวเลือก A", "B", "C", "D"],\n    "correct_index": 0,\n    "difficulty": "easy"\n  }\n]'
+          placeholder='วาง JSON array ที่ได้จาก AI ที่นี่...'
           class="w-full px-4 py-3 bg-qs-surface border border-qs-border rounded-qs text-qs-text placeholder-qs-muted text-xs font-mono focus:outline-none focus:border-qs-primary transition-colors resize-y"
           @input="importError = ''"
         ></textarea>
-
         <div class="flex gap-3 mt-4">
           <button class="btn-secondary flex-shrink-0" @click="currentStep = 0">← แก้ไข</button>
-          <button
-            class="btn-primary flex-1 py-3"
-            :disabled="!jsonInput.trim()"
-            @click="parseAndPreview"
-          >
+          <button class="btn-primary flex-1 py-3" :disabled="!jsonInput.trim()" @click="parseAndPreview">
             🔍 ตรวจสอบ JSON →
           </button>
         </div>
@@ -238,38 +243,29 @@
 
     <!-- ─── Step 2: Preview ────────────────────────── -->
     <div v-if="currentStep === 2" class="space-y-6 animate-slide-up">
-
-      <!-- Summary -->
       <div class="card p-6">
         <div class="flex items-start justify-between gap-4 mb-5">
           <div>
             <h3 class="font-bold text-qs-text mb-1">✅ JSON ถูกต้อง — พร้อม Import</h3>
-            <p class="text-qs-muted text-sm">{{ parsedQuestions.length }} ข้อ · {{ stageCount }} ด่าน</p>
+            <p class="text-qs-muted text-sm">{{ parsedQuestions.length }} ข้อ · {{ stageCount }} ด่าน · คำอธิบาย{{ explanationLength === 'short' ? 'สั้น' : 'ละเอียด' }}</p>
           </div>
-          <div class="flex gap-2 flex-shrink-0">
+          <div class="flex gap-2 flex-shrink-0 flex-wrap justify-end">
             <span
-              v-for="(count, diff) in difficultyCount"
-              :key="diff"
+              v-for="(count, diff) in difficultyCount" :key="diff"
               class="px-2.5 py-1 rounded-full text-xs font-medium"
               :class="{
                 'bg-green-900/30 text-qs-success border border-qs-success/30': diff === 'easy',
                 'bg-yellow-900/30 text-qs-warning border border-qs-warning/30': diff === 'normal',
                 'bg-red-900/30 text-qs-danger border border-qs-danger/30': diff === 'hard',
               }"
-            >
-              {{ diff }}: {{ count }}
-            </span>
+            >{{ diff }}: {{ count }}</span>
           </div>
         </div>
 
-
-
-        <!-- Title input -->
         <div>
           <label class="block text-sm font-medium text-qs-muted mb-2">ชื่อชุดข้อสอบ <span class="text-qs-danger">*</span></label>
           <input
-            v-model="setTitle"
-            type="text"
+            v-model="setTitle" type="text"
             placeholder="เช่น: ประวัติศาสตร์ไทย 20 ข้อ"
             maxlength="60"
             class="w-full px-4 py-3 bg-qs-surface border border-qs-border rounded-qs text-qs-text placeholder-qs-muted focus:outline-none focus:border-qs-primary transition-colors"
@@ -277,24 +273,19 @@
         </div>
       </div>
 
-      <!-- Question Preview (แสดง 3 ข้อแรก) -->
+      <!-- Question Preview -->
       <div class="card p-6">
         <div class="flex items-center justify-between mb-4">
           <h3 class="font-bold text-qs-text">ตัวอย่างข้อสอบ (3 ข้อแรก)</h3>
           <div class="flex gap-3 items-center">
             <button
               class="text-xs px-3 py-1.5 rounded-qs transition-colors"
-              :class="showAnswers 
-                ? 'bg-qs-danger/20 text-qs-danger border border-qs-danger/30' 
+              :class="showAnswers
+                ? 'bg-qs-danger/20 text-qs-danger border border-qs-danger/30'
                 : 'bg-qs-success/20 text-qs-success border border-qs-success/30'"
               @click="showAnswers = !showAnswers"
-            >
-              {{ showAnswers ? '🙈 ซ่อนเฉลย' : '👁️ แสดงเฉลย' }}
-            </button>
-            <button
-              class="text-xs text-qs-primary hover:underline"
-              @click="showAllPreview = !showAllPreview"
-            >
+            >{{ showAnswers ? '🙈 ซ่อนเฉลย' : '👁️ แสดงเฉลย' }}</button>
+            <button class="text-xs text-qs-primary hover:underline" @click="showAllPreview = !showAllPreview">
               {{ showAllPreview ? 'ย่อลง' : `ดูทั้งหมด ${parsedQuestions.length} ข้อ` }}
             </button>
           </div>
@@ -312,24 +303,22 @@
             </div>
             <div class="grid grid-cols-2 gap-2">
               <div
-                v-for="(opt, oi) in q.options"
-                :key="oi"
+                v-for="(opt, oi) in q.options" :key="oi"
                 class="text-xs px-3 py-2 rounded-[8px] border transition-colors"
                 :class="showAnswers && oi === q.correct_index
                   ? 'bg-green-900/20 border-qs-success text-qs-success'
                   : 'bg-qs-bg border-qs-border text-qs-muted'"
-              >
-                <span class="font-bold mr-1">{{ ['A','B','C','D'][oi] }}.</span>{{ opt }}
-              </div>
+              ><span class="font-bold mr-1">{{ ['A','B','C','D'][oi] }}.</span>{{ opt }}</div>
             </div>
-            <p v-if="showAnswers && q.explanation" class="text-xs text-qs-muted mt-2 pl-1">
-              💡 {{ q.explanation }}
-            </p>
+            <p v-if="showAnswers && q.explanation" class="text-xs mt-2 pl-1 leading-relaxed"
+              :class="explanationLength === 'long'
+                ? 'text-qs-text bg-qs-surface/60 rounded-qs p-2 border-l-2 border-qs-primary'
+                : 'text-qs-muted'"
+            >{{ explanationLength === 'long' ? '📖 ' : '💡 ' }}{{ q.explanation }}</p>
           </div>
         </div>
       </div>
 
-      <!-- Action buttons -->
       <div class="flex gap-3">
         <button class="btn-secondary" @click="currentStep = 1">← แก้ไข JSON</button>
         <button
@@ -358,78 +347,92 @@ import { useQuizStore } from '@/stores/quizStore'
 const router    = useRouter()
 const quizStore = useQuizStore()
 
-// ─── State ───────────────────────────────────────────
-const activeMode     = ref('topic')
-const topic          = ref('')
-const topicDetails   = ref('')  // รายละเอียดเพิ่มเติมสำหรับ topic ที่ซับซ้อน
-const numQuestions   = ref(20)
-const lang           = ref('thai')
-const difficulty     = ref('mixed')
-const generatedPrompt = ref('')
-const jsonInput      = ref('')
-const setTitle       = ref('')
-const copied         = ref(false)
-const importError    = ref('')
-const currentStep    = ref(0)
-const showAllPreview = ref(false)
-const showAnswers    = ref(false)  // ซ่อนเฉลยตอน preview
-const parsedQuestions = ref([])
-const showFullPrompt = ref(false)  // ย่อ/ขยาย prompt
+// ─── State ────────────────────────────────────────────
+const topic             = ref('')
+const topicDetails      = ref('')
+const numQuestions      = ref(20)
+const lang              = ref('thai')
+const difficulty        = ref('mixed')
+const explanationLength = ref('short')
+const generatedPrompt   = ref('')
+const jsonInput         = ref('')
+const setTitle          = ref('')
+const copied            = ref(false)
+const importError       = ref('')
+const currentStep       = ref(0)
+const showAllPreview    = ref(false)
+const showAnswers       = ref(false)
+const parsedQuestions   = ref([])
+const showFullPrompt    = ref(false)
 
-// Document mode
-const docFile    = ref(null)
-const docError   = ref('')
-const isDragging = ref(false)
-const fileInput  = ref(null)
+// Source file (optional)
+const useSourceFile = ref(false)
 
-// ─── Static data ─────────────────────────────────────
-const modes = [
-  { key: 'topic',    label: '📝 Topic Mode' },
-  { key: 'document', label: '📄 Document Mode' },
-]
-
+// ─── Static ───────────────────────────────────────────
 const steps = ['ตั้งค่า', 'Copy Prompt', 'Preview & Import']
 
 const aiLinks = [
-  { name: 'ChatGPT',  icon: '🤖', url: 'https://chat.openai.com' },
-  { name: 'Claude',   icon: '✦',  url: 'https://claude.ai' },
-  { name: 'Gemini',   icon: '♊',  url: 'https://gemini.google.com' },
+  { name: 'ChatGPT', icon: '🤖', url: 'https://chat.openai.com' },
+  { name: 'Claude',  icon: '✦',  url: 'https://claude.ai' },
+  { name: 'Gemini',  icon: '♊',  url: 'https://gemini.google.com' },
 ]
 
-const stageEmoji = { 1: '🟢', 2: '👺', 3: '👹', 4: '🧙', 5: '👿' }
+const aiWithFileSupport = [
+  {
+    name: 'ChatGPT',
+    icon: '🤖',
+    note: 'รองรับ PDF, Word, Excel, TXT, รูปภาพ ผ่านไอคอน 📎 — ต้องใช้ GPT-4o ขึ้นไป',
+  },
+  {
+    name: 'Claude',
+    icon: '✦',
+    note: 'รองรับ PDF, Word, TXT, รูปภาพ, หลายไฟล์พร้อมกัน — รองรับ context ยาวมาก',
+  },
+  {
+    name: 'Gemini',
+    icon: '♊',
+    note: 'รองรับ PDF, ไฟล์ Google Drive, รูปภาพ — เชื่อม Google Workspace ได้โดยตรง',
+  },
+]
 
 // ─── Computed ─────────────────────────────────────────
+const questionCountHint = computed(() => {
+  const n = numQuestions.value
+  const isLong = explanationLength.value === 'long'
+  if (!n || n < 1) return { text: 'กรุณาระบุจำนวนข้อ', color: 'text-qs-muted' }
+  if (n <= 10)  return { text: '✅ ปลอดภัยทุก AI รวมถึง free tier', color: 'text-qs-success' }
+  if (n <= 15)  return { text: '✅ เหมาะสำหรับ AI ฟรี', color: 'text-qs-success' }
+  if (n <= 20)  return { text: isLong ? '⚠️ 20 ข้อ + คำอธิบายยาว อาจหนักสำหรับ AI ฟรี' : '⭐ จำนวนที่เหมาะที่สุด — สมดุล token/เนื้อหา', color: isLong ? 'text-qs-warning' : 'text-qs-primary' }
+  if (n <= 25)  return { text: isLong ? '🔴 เสี่ยงสร้างไม่เสร็จใน AI ฟรี' : '⚠️ แนะนำ AI Pro หรือคำอธิบายสั้น', color: 'text-qs-warning' }
+  if (n <= 30)  return { text: isLong ? '🔴 เสี่ยงสูง AI ตัด output กลางคัน' : '⚠️ AI Pro เท่านั้น', color: 'text-qs-warning' }
+  return { text: '🔴 ต้องใช้ AI Pro + คำอธิบายสั้น', color: 'text-qs-danger' }
+})
+
 const difficultyCount = computed(() => {
   const counts = { easy: 0, normal: 0, hard: 0 }
-  parsedQuestions.value.forEach(q => {
-    const d = q.difficulty ?? 'normal'
-    if (d in counts) counts[d]++
-  })
-  // Remove zeros
+  parsedQuestions.value.forEach(q => { const d = q.difficulty ?? 'normal'; if (d in counts) counts[d]++ })
   return Object.fromEntries(Object.entries(counts).filter(([, v]) => v > 0))
 })
 
-const questionsByStage = computed(() => {
-  const byStage = {}
+const stageCount = computed(() => {
   const perStage = Math.max(1, Math.ceil(parsedQuestions.value.length / 5))
-  parsedQuestions.value.forEach((q, i) => {
-    const stage = Math.min(5, Math.floor(i / perStage) + 1)
-    if (!byStage[stage]) byStage[stage] = []
-    byStage[stage].push(q)
-  })
-  return byStage
+  const stages = new Set()
+  parsedQuestions.value.forEach((_, i) => stages.add(Math.min(5, Math.floor(i / perStage) + 1)))
+  return stages.size
 })
 
-const stageCount = computed(() => Object.keys(questionsByStage.value).length)
+// ─── Helpers ──────────────────────────────────────────
+function clampNumQuestions() {
+  const v = numQuestions.value
+  if (!v || v < 1) numQuestions.value = 1
+  if (v > 100) numQuestions.value = 100
+}
 
-// ─── Helpers ─────────────────────────────────────────
 function getDifficultyDist() {
   const n = numQuestions.value
   if (difficulty.value === 'mixed') {
-    const easy   = Math.floor(n * 0.4)
-    const hard   = Math.floor(n * 0.2)
-    const normal = n - easy - hard
-    return `${easy} easy, ${normal} normal, ${hard} hard`
+    const easy = Math.floor(n * 0.4), hard = Math.floor(n * 0.2)
+    return `${easy} easy, ${n - easy - hard} normal, ${hard} hard`
   }
   return `${n} ${difficulty.value}`
 }
@@ -438,7 +441,13 @@ function buildPrompt(contentSection) {
   const langNote = lang.value === 'thai'
     ? 'IMPORTANT: Generate ALL questions, options, and explanations in Thai language ONLY.'
     : 'Generate all questions, options, and explanations in English ONLY.'
-  
+  const explanationRule = explanationLength.value === 'short'
+    ? 'Each question must include a SHORT explanation (1 sentence only, max 20 words). Be concise.'
+    : 'Each question must include a DETAILED explanation (2-4 sentences). Explain WHY the answer is correct with context.'
+  const exampleExplanation = explanationLength.value === 'short'
+    ? 'อธิบาย 1 ประโยคสั้นๆ ว่าทำไมตัวเลือก C ถูกต้อง'
+    : 'อธิบาย 2-4 ประโยค ว่าทำไมตัวเลือก C ถูก พร้อมบริบทและเหตุผลให้ผู้อ่านเข้าใจได้เลย'
+
   return `You are a quiz generator for an educational RPG game called QuizSlayer.
 Generate exactly ${numQuestions.value} multiple choice questions based on the content below.
 
@@ -446,117 +455,86 @@ CRITICAL JSON FORMAT RULES (MUST FOLLOW):
 1. Return ONLY a valid JSON array starting with [ and ending with ]
 2. NO markdown code blocks (no \`\`\`json or \`\`\`)
 3. NO explanatory text before or after the JSON
-4. Use ONLY straight double quotes " (ASCII 34) - NO curly quotes "" or smart quotes
-5. If you need quotes inside text content, use single quotes ' instead: "คำว่า 'Blue' คือ"
-6. Do NOT escape quotes inside strings - use single quotes for nested quotes
-7. All strings must be properly enclosed in double quotes
+4. Use ONLY straight double quotes " (ASCII 34) - NO curly quotes
+5. If you need quotes inside text, use single quotes ' instead
+6. All strings must be properly enclosed in double quotes
+
+HTML/CODE TAG RULE (VERY IMPORTANT):
+- NEVER use actual angle brackets < > inside JSON string values
+- They will be stripped or cause empty strings
+- Instead write tags as plain descriptive text:
+  * <main> → "main tag" or "แท็ก main"
+  * <div> → "div tag" or "แท็ก div"
+  * <section> → "section tag"
+  * <p> → "p tag" or "paragraph tag"
+- For code/programming options, describe them without < >:
+  * BAD:  "options": ["<main>", "<section>", "<article>", "<div>"]
+  * GOOD: "options": ["แท็ก main", "แท็ก section", "แท็ก article", "แท็ก div"]
 
 QUESTION GENERATION RULES:
 - Each question must have exactly 4 options (array with 4 strings)
-- correct_index is 0-based integer: 0=first option, 1=second, 2=third, 3=fourth
-- CRITICAL: Distribute correct_index RANDOMLY. Statistics must show:
-  * ~25% questions with correct_index: 0
-  * ~25% questions with correct_index: 1
-  * ~25% questions with correct_index: 2
-  * ~25% questions with correct_index: 3
-  * AVOID patterns like all answers being 0 or sequential patterns
+- CRITICAL: Every option string MUST be non-empty — empty string "" is NOT allowed
+- correct_index is 0-based: 0=A, 1=B, 2=C, 3=D
+- CRITICAL: Distribute correct_index RANDOMLY (~25% each index)
+- AVOID patterns like all answers being 0 or sequential
 - Difficulty distribution: ${getDifficultyDist()}
-- Each question must include a brief explanation (1-2 sentences)
+- ${explanationRule}
 - ${langNote}
 
 CONTENT QUALITY RULES:
-- Questions should be clear, unambiguous, and testable
-- Options should be plausible but only one is correct
-- Avoid "All of the above" or "None of the above" options
-- Ensure factual accuracy in all content
+- Questions must be clear, unambiguous, and testable
+- Options should be plausible but only one correct
+- Avoid "All of the above" or "None of the above"
+- Ensure factual accuracy
 
 ${contentSection}
 
-REQUIRED JSON FORMAT (copy this structure exactly):
+REQUIRED JSON FORMAT (HTML tag example — notice plain text options, no angle brackets):
 [
   {
-    "question": "คำถามที่ชัดเจนและเฉพาะเจาะจง?",
+    "question": "HTML Semantic tag ใดใช้สำหรับเนื้อหาหลักของหน้าเว็บ?",
+    "options": ["แท็ก main", "แท็ก section", "แท็ก article", "แท็ก div"],
+    "correct_index": 0,
+    "difficulty": "easy",
+    "explanation": "แท็ก main ใช้ระบุเนื้อหาหลักของหน้า และควรมีเพียงหนึ่งเดียวต่อ document"
+  },
+  {
+    "question": "คำถามที่ชัดเจน?",
     "options": ["ตัวเลือก A", "ตัวเลือก B", "ตัวเลือก C", "ตัวเลือก D"],
     "correct_index": 2,
     "difficulty": "normal",
-    "explanation": "อธิบายสั้นๆ ว่าทำไมตัวเลือก C ถูกต้อง"
+    "explanation": "${exampleExplanation}"
   }
 ]
 
-REMEMBER: 
-- Output ONLY the JSON array
-- Use straight quotes " everywhere
-- Use single quotes ' for quotes inside text
-- Randomize correct_index distribution
-- No extra text or formatting`
+REMEMBER:
+- Output ONLY the JSON array. No extra text or formatting.
+- NO angle brackets < > in any string value
+- ALL 4 options must be non-empty strings`
 }
 
 // ─── Step navigation ──────────────────────────────────
-function goToStep1() {
+async function goToStep1() {
   if (!topic.value.trim()) return
-  
-  // สร้าง content section รวม topic details
+
   let contentSection = `Topic: ${topic.value.trim()}`
   if (topicDetails.value.trim()) {
     contentSection += `\n\nAdditional Details:\n${topicDetails.value.trim()}`
   }
-  
+
+  // ถ้าผู้ใช้ระบุไฟล์แหล่งข้อมูล
+  if (useSourceFile.value) {
+    contentSection += `\n\n=== SOURCE FILE INSTRUCTION ===
+IMPORTANT: The user will attach or upload a file to this conversation.
+You MUST base ALL questions exclusively on the content of that attached file.
+Do NOT generate questions from general knowledge — use ONLY content from the provided file.
+If no file has been attached yet, ask the user to attach the file before proceeding.
+=== END SOURCE FILE INSTRUCTION ===`
+  }
+
   generatedPrompt.value = buildPrompt(contentSection)
   setTitle.value = topic.value.trim()
   currentStep.value = 1
-}
-
-async function goToStep1Doc() {
-  if (!docFile.value) return
-  docError.value = ''
-
-  try {
-    let text = ''
-    if (docFile.value.type === 'text/plain' || docFile.value.name.endsWith('.txt')) {
-      text = await docFile.value.text()
-    } else {
-      // PDF: แสดง prompt ให้ user ใช้เนื้อหาจาก PDF เอง
-      text = `[เนื้อหาจากไฟล์: ${docFile.value.name}]\n\nกรุณา extract text จาก PDF แล้ววางตรงนี้ หรือสรุปเนื้อหาที่ต้องการออกข้อสอบ`
-    }
-
-    // ตัดข้อความถ้ายาวเกิน (~3000 chars) เพื่อไม่ให้ prompt ใหญ่เกิน
-    const trimmedText = text.length > 3000
-      ? text.slice(0, 3000) + '\n...[ตัดข้อความที่เหลือออกเพื่อความเหมาะสม]'
-      : text
-
-    generatedPrompt.value = buildPrompt(`Document Content:\n"""\n${trimmedText}\n"""`)
-    setTitle.value = docFile.value.name.replace(/\.[^.]+$/, '')
-    currentStep.value = 1
-  } catch (err) {
-    docError.value = 'อ่านไฟล์ไม่ได้: ' + err.message
-  }
-}
-
-// ─── File handlers ────────────────────────────────────
-function handleFileSelect(e) {
-  const file = e.target.files?.[0]
-  if (file) validateAndSetFile(file)
-}
-
-function handleFileDrop(e) {
-  isDragging.value = false
-  const file = e.dataTransfer.files?.[0]
-  if (file) validateAndSetFile(file)
-}
-
-function validateAndSetFile(file) {
-  docError.value = ''
-  const allowed = ['text/plain', 'application/pdf']
-  const isAllowedExt = file.name.endsWith('.txt') || file.name.endsWith('.pdf')
-  if (!allowed.includes(file.type) && !isAllowedExt) {
-    docError.value = 'รองรับเฉพาะ .txt และ .pdf เท่านั้น'
-    return
-  }
-  if (file.size > 2 * 1024 * 1024) {
-    docError.value = 'ขนาดไฟล์เกิน 2 MB'
-    return
-  }
-  docFile.value = file
 }
 
 // ─── Copy ─────────────────────────────────────────────
@@ -570,61 +548,44 @@ async function copyPrompt() {
 function parseAndPreview() {
   importError.value = ''
   const raw = jsonInput.value.trim()
+  let parsed, cleaned = ''
 
-  let parsed
-  let cleaned = ''
-  
   try {
-    // 1. ลบ markdown code fence
     cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim()
-    
-    // 2. แก้ smart quotes → straight quotes (สำหรับ Gemini)
-    cleaned = cleaned
-      .replace(/[\u201C\u201D]/g, '"')  // " " → "
-      .replace(/[\u2018\u2019]/g, "'")  // ' ' → '
-    
-    // 3. Parse JSON โดยตรง
+    // แก้ smart quotes → straight quotes (Gemini)
+    cleaned = cleaned.replace(/[\u201C\u201D]/g, '"').replace(/[\u2018\u2019]/g, "'")
+    // แก้ HTML entities ที่ AI บางตัวอาจส่งมา เช่น &lt;main&gt; → <main>
+    cleaned = cleaned.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')
     parsed = JSON.parse(cleaned)
   } catch (err) {
-    // แสดง context รอบๆ ตำแหน่งที่ error เพื่อ debug
     const match = err.message.match(/position (\d+)/)
     if (match && cleaned) {
       const pos = parseInt(match[1])
-      const start = Math.max(0, pos - 30)
-      const end = Math.min(cleaned.length, pos + 30)
-      const context = cleaned.substring(start, end)
-      importError.value = `JSON ไม่ถูกต้อง — ${err.message}\n\nบริเวณที่ผิด: ...${context}...`
+      const ctx = cleaned.substring(Math.max(0, pos - 30), Math.min(cleaned.length, pos + 30))
+      importError.value = `JSON ไม่ถูกต้อง — ${err.message}\n\nบริเวณที่ผิด: ...${ctx}...`
     } else {
       importError.value = `JSON ไม่ถูกต้อง — ${err.message}`
     }
     return
   }
 
-  if (!Array.isArray(parsed)) {
-    importError.value = 'ต้องเป็น JSON array เท่านั้น (เริ่มต้นด้วย [)'
-    return
-  }
+  if (!Array.isArray(parsed)) { importError.value = 'ต้องเป็น JSON array (เริ่มด้วย [)'; return }
+  if (parsed.length === 0) { importError.value = 'JSON array ว่างเปล่า'; return }
 
-  if (parsed.length === 0) {
-    importError.value = 'JSON array ว่างเปล่า'
-    return
-  }
-
-  // Validate each question
   const errors = []
   parsed.forEach((q, i) => {
-    const num = i + 1
-    // รองรับทั้ง "question" และ "question_text" จาก AI
-    const questionText = q.question ?? q.question_text
-    if (!questionText || typeof questionText !== 'string') {
-      errors.push(`ข้อ ${num}: ไม่มี field "question"`)
-    }
+    const qText = q.question ?? q.question_text
+    if (!qText || typeof qText !== 'string') errors.push(`ข้อ ${i + 1}: ไม่มี field "question"`)
     if (!Array.isArray(q.options) || q.options.length !== 4) {
-      errors.push(`ข้อ ${num}: "options" ต้องเป็น array 4 ตัว`)
+      errors.push(`ข้อ ${i + 1}: "options" ต้องมี 4 ตัว`)
+    } else {
+      // ตรวจ options ว่างเปล่า (เกิดจาก AI ใส่ HTML tag แล้วถูก strip)
+      const emptyOpts = q.options.filter(o => !o || String(o).trim() === '')
+      if (emptyOpts.length > 0) {
+        errors.push(`ข้อ ${i + 1}: มีตัวเลือกว่างเปล่า ${emptyOpts.length} ตัว — อาจเกิดจาก AI ใช้ HTML tag (<div> ฯลฯ) ในตัวเลือก ให้สั่ง AI ใหม่โดยใช้ข้อความธรรมดาแทน`)
+      }
     }
-    if (!Number.isInteger(q.correct_index) || q.correct_index < 0 || q.correct_index > 3) {
-      errors.push(`ข้อ ${num}: "correct_index" ต้องเป็น 0-3`)
-    }
+    if (!Number.isInteger(q.correct_index) || q.correct_index < 0 || q.correct_index > 3) errors.push(`ข้อ ${i + 1}: "correct_index" ต้องเป็น 0-3`)
   })
 
   if (errors.length > 0) {
@@ -632,7 +593,6 @@ function parseAndPreview() {
     return
   }
 
-  // Normalize field names (รองรับทั้ง question และ question_text)
   parsedQuestions.value = parsed.map(q => ({
     question:      q.question ?? q.question_text,
     options:       q.options,
@@ -648,7 +608,6 @@ function parseAndPreview() {
 async function doImport() {
   importError.value = ''
   if (!setTitle.value.trim()) return
-
   try {
     const result = await quizStore.importFromJSON(setTitle.value.trim(), parsedQuestions.value)
     if (result) {

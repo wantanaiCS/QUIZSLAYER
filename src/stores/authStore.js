@@ -216,6 +216,25 @@ export const useAuthStore = defineStore('auth', () => {
     profile.value = null
   }
 
+  async function updateUsername(newUsername) {
+    const trimmed = newUsername.trim()
+    // รองรับภาษาไทย, อังกฤษ, ตัวเลข, _ · ยาว 2-20 ตัวอักษร
+    if (!/^[\u0E00-\u0E7Fa-zA-Z0-9_]{2,20}$/.test(trimmed)) {
+      return { ok: false, message: 'ชื่อผู้เล่นใช้ได้เฉพาะ ก-ฮ, a-z, 0-9, _ และยาว 2-20 ตัวอักษร' }
+    }
+    if (isMockMode) {
+      writeMockProfile({ ...profile.value, username: trimmed })
+      return { ok: true }
+    }
+    const { error: err } = await supabase
+      .from('profiles')
+      .update({ username: trimmed })
+      .eq('id', user.value.id)
+    if (err) return { ok: false, message: err.message }
+    profile.value = { ...profile.value, username: trimmed }
+    return { ok: true }
+  }
+
   async function sendPasswordReset(email) {
     loading.value = true
     error.value = null
@@ -242,6 +261,7 @@ export const useAuthStore = defineStore('auth', () => {
   return {
     user, profile, initialized, loading, error, notice,
     isLoggedIn, displayName, coins,
-    init, fetchProfile, signInWithEmail, signInWithGoogle, signUp, signOut, sendPasswordReset, writeMockProfile,
+    init, fetchProfile, signInWithEmail, signInWithGoogle, signUp, signOut,
+    sendPasswordReset, updateUsername, writeMockProfile,
   }
 })

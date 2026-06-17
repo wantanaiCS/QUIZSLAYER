@@ -1,7 +1,7 @@
 -- Create users table (extends auth.users)
 CREATE TABLE public.profiles (
   id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
-  username TEXT UNIQUE NOT NULL CHECK (username ~ '^[a-zA-Z0-9_]{3,20}$'),
+  username TEXT UNIQUE NOT NULL CHECK (username ~ '^[\u0E00-\u0E7Fa-zA-Z0-9_]{2,20}$'),
   avatar_url TEXT,
   level INTEGER DEFAULT 1 CHECK (level >= 1),
   exp INTEGER DEFAULT 0 CHECK (exp >= 0),
@@ -178,7 +178,10 @@ DECLARE
   base_username TEXT;
 BEGIN
   base_username := COALESCE(
-    NULLIF(REGEXP_REPLACE(NEW.raw_user_meta_data->>'username', '[^a-zA-Z0-9_]', '_', 'g'), ''),
+    NULLIF(REGEXP_REPLACE(
+      NEW.raw_user_meta_data->>'username',
+      '[^\u0E00-\u0E7Fa-zA-Z0-9_]', '_', 'g'
+    ), ''),
     'Slayer_' || SUBSTRING(NEW.id::TEXT, 1, 8)
   );
 
