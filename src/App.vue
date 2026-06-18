@@ -10,7 +10,7 @@
 
         <!-- Logo -->
         <router-link to="/" class="flex items-center gap-2 group flex-shrink-0" aria-label="QuizSlayer Home">
-          <img src="/Logo.png" alt="QuizSlayer" class="h-16 w-auto object-contain flex-shrink-0" />
+          <img src="/LogoNav.png" alt="QuizSlayer" class="h-16 w-auto object-contain flex-shrink-0" />
         </router-link>
 
         <!-- Nav links — desktop (lg+) -->
