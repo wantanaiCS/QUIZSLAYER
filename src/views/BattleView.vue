@@ -3,12 +3,14 @@
 
     <!-- Step header + indicator -->
     <div v-if="step < 3" class="text-center mb-10">
-      <div class="flex items-center justify-center gap-2 mb-4">
-        <PhSword :size="22" weight="bold" class="text-qs-primary" aria-hidden="true" />
-        <h1 class="text-2xl font-bold text-qs-text">Battle Arena</h1>
+      <div class="page-header-title">
+        <GameIcon name="sword" :size="24" class="text-qs-primary" />
+        <h1 class="page-title">BATTLE ARENA</h1>
       </div>
-      <p class="text-qs-muted text-sm mb-6">เลือกชุดข้อสอบและโหมดความยาก แล้วลงสนาม!</p>
-      <StepIndicator :steps="['เลือกชุดข้อสอบ','เลือกความยาก','ต่อสู้!']" :current="step - 1" />
+      <p class="page-description">เลือกชุดข้อสอบและโหมดความยาก แล้วลงสนาม!</p>
+      <div class="mt-6">
+        <StepIndicator :steps="['เลือกชุดข้อสอบ','เลือกความยาก','ต่อสู้!']" :current="step - 1" />
+      </div>
     </div>
 
     <!-- Step 1: Select Quiz Set -->
@@ -72,8 +74,8 @@
 
       <!-- 5 Stages info -->
       <div class="mt-14 mb-2">
-        <h2 class="text-lg font-bold text-center text-qs-text mb-1">5 ด่าน — 5 มอนสเตอร์</h2>
-        <p class="text-qs-muted text-center text-xs mb-6">แต่ละด่านมีกลไกพิเศษที่ยากขึ้นเรื่อยๆ</p>
+        <h2 class="section-title">5 STAGES</h2>
+        <p class="section-description">แต่ละด่านมีกลไกพิเศษที่ยากขึ้นเรื่อยๆ</p>
         <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
           <div
             v-for="stage in stages"

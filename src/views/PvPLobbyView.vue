@@ -1,12 +1,11 @@
 <template>
   <div class="max-w-lg mx-auto px-4 py-8 relative z-10">
-    <div class="text-center mb-8">
-      <div class="inline-flex items-center justify-center w-14 h-14 rounded-qs mb-4"
-           style="background: linear-gradient(135deg, #ff4757, #ff6b6b);">
-        <PhUsersThree :size="28" weight="duotone" class="text-white" aria-hidden="true" />
+    <div class="page-header">
+      <div class="page-header-title">
+        <GameIcon name="crossed-swords" :size="24" class="text-qs-danger" />
+        <h1 class="page-title" style="color: #ff6b6b;">PVP LOBBY</h1>
       </div>
-      <h1 class="text-2xl font-bold text-qs-text mb-1">PvP Battle</h1>
-      <p class="text-qs-muted text-sm">แข่งตอบคำถามกับเพื่อน คนละเครื่อง</p>
+      <p class="page-description">สร้างห้องหรือเข้าห้องเพื่อแข่งกับเพื่อน</p>
     </div>
 
     <!-- Mode select -->
@@ -306,6 +305,7 @@ import { useQuizStore } from '@/stores/quizStore'
 import { useAuthStore } from '@/stores/authStore'
 import { PVP_BG_OPTIONS } from '@/lib/phaser/PvPScene'
 import AvatarFrame from '@/components/ui/AvatarFrame.vue'
+import GameIcon from '@/components/ui/GameIcon.vue'
 import {
   PhUsersThree, PhHouse, PhDoorOpen, PhArrowRight, PhArrowLeft,
   PhCheckCircle, PhCopy, PhWifiHigh, PhWifiX, PhSword, PhWarningCircle,

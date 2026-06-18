@@ -128,6 +128,10 @@ watch(() => props.bgImage, (newImage) => {
 // Pre-compute particle positions once (cached by Vue)
 const particles = computed(() => {
   const arr = []
+  // Responsive speed: เร็วขึ้นบนหน้าจอใหญ่
+  const screenHeight = typeof window !== 'undefined' ? window.innerHeight : 800
+  const speedMultiplier = Math.max(0.6, Math.min(1.2, screenHeight / 900))
+  
   for (let i = 0; i < props.particleCount; i++) {
     const style = {}
     style.left = `${Math.random() * 100}%`
@@ -135,20 +139,24 @@ const particles = computed(() => {
     if (props.effect.includes('fireflies')) {
       style.top = `${Math.random() * 100}%`
       style.animationDelay = `${Math.random() * 2}s`
-      style.animationDuration = `${3 + Math.random() * 3}s` // เร็วมาก: 3-6s
+      const baseDuration = 3 + Math.random() * 3
+      style.animationDuration = `${baseDuration / speedMultiplier}s` // เร็วขึ้นบนหน้าจอใหญ่
     } else if (props.effect === 'snow') {
       style.animationDelay = `${Math.random() * 2}s`
-      style.animationDuration = `${4 + Math.random() * 4}s` // เร็วขึ้น: 4-8s
-      style.fontSize = `${14 + Math.random() * 12}px` // ใหญ่ขึ้น: 14-26px (เดิม 10-20px)
-      style.opacity = 0.6 + Math.random() * 0.4 // สว่างขึ้น: 0.6-1.0 (เดิม 0.3-0.8)
+      const baseDuration = 4 + Math.random() * 4
+      style.animationDuration = `${baseDuration / speedMultiplier}s`
+      style.fontSize = `${14 + Math.random() * 12}px`
+      style.opacity = 0.6 + Math.random() * 0.4
     } else if (props.effect === 'ash') {
       style.animationDelay = `${Math.random() * 3}s`
-      style.animationDuration = `${4 + Math.random() * 4}s` // เร็วขึ้น: 4-8s
+      const baseDuration = 4 + Math.random() * 4
+      style.animationDuration = `${baseDuration / speedMultiplier}s`
       style.opacity = 0.3 + Math.random() * 0.4
     } else if (props.effect === 'sparks') {
       style.bottom = '-10%'
       style.animationDelay = `${Math.random() * 2}s`
-      style.animationDuration = `${1.5 + Math.random() * 1.5}s` // เร็วมาก: 1.5-3s
+      const baseDuration = 1.5 + Math.random() * 1.5
+      style.animationDuration = `${baseDuration / speedMultiplier}s`
     }
     
     arr.push(style)
@@ -159,15 +167,19 @@ const particles = computed(() => {
 // For combined effects
 const snowParticles = computed(() => {
   if (props.effect !== 'snow-ash') return []
-  const count = Math.floor(props.particleCount * 0.7) // เพิ่มหิมะ: 70% (เดิม 60%)
+  const count = Math.floor(props.particleCount * 0.7)
+  const screenHeight = typeof window !== 'undefined' ? window.innerHeight : 800
+  const speedMultiplier = Math.max(0.6, Math.min(1.2, screenHeight / 900))
+  
   const arr = []
   for (let i = 0; i < count; i++) {
+    const baseDuration = 4 + Math.random() * 4
     arr.push({
       left: `${Math.random() * 100}%`,
       animationDelay: `${Math.random() * 2}s`,
-      animationDuration: `${4 + Math.random() * 4}s`, // เร็วขึ้น: 4-8s
-      fontSize: `${14 + Math.random() * 12}px`, // ใหญ่ขึ้น
-      opacity: 0.6 + Math.random() * 0.4 // สว่างขึ้น
+      animationDuration: `${baseDuration / speedMultiplier}s`,
+      fontSize: `${14 + Math.random() * 12}px`,
+      opacity: 0.6 + Math.random() * 0.4
     })
   }
   return arr
@@ -175,13 +187,17 @@ const snowParticles = computed(() => {
 
 const ashParticles = computed(() => {
   if (!['snow-ash', 'ash-sparks'].includes(props.effect)) return []
-  const count = Math.floor(props.particleCount * (props.effect === 'snow-ash' ? 0.3 : 0.6)) // ลดขี้เถ้าเล็กน้อย
+  const count = Math.floor(props.particleCount * (props.effect === 'snow-ash' ? 0.3 : 0.6))
+  const screenHeight = typeof window !== 'undefined' ? window.innerHeight : 800
+  const speedMultiplier = Math.max(0.6, Math.min(1.2, screenHeight / 900))
+  
   const arr = []
   for (let i = 0; i < count; i++) {
+    const baseDuration = 4 + Math.random() * 4
     arr.push({
       left: `${Math.random() * 100}%`,
       animationDelay: `${Math.random() * 3}s`,
-      animationDuration: `${4 + Math.random() * 4}s`, // เร็วขึ้น
+      animationDuration: `${baseDuration / speedMultiplier}s`,
       opacity: 0.3 + Math.random() * 0.4
     })
   }
@@ -191,13 +207,17 @@ const ashParticles = computed(() => {
 const sparkParticles = computed(() => {
   if (props.effect !== 'ash-sparks') return []
   const count = Math.floor(props.particleCount * 0.4)
+  const screenHeight = typeof window !== 'undefined' ? window.innerHeight : 800
+  const speedMultiplier = Math.max(0.6, Math.min(1.2, screenHeight / 900))
+  
   const arr = []
   for (let i = 0; i < count; i++) {
+    const baseDuration = 1.5 + Math.random() * 1.5
     arr.push({
       left: `${Math.random() * 100}%`,
       bottom: '-10%',
       animationDelay: `${Math.random() * 2}s`,
-      animationDuration: `${1.5 + Math.random() * 1.5}s` // เร็วมาก
+      animationDuration: `${baseDuration / speedMultiplier}s`
     })
   }
   return arr

@@ -1,6 +1,15 @@
 <template>
   <div class="max-w-5xl mx-auto px-4 py-10 relative z-10">
 
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="page-header-title">
+        <GameIcon name="player" :size="24" class="text-qs-accent" />
+        <h1 class="page-title" style="color: #ff9800;">PLAYER PROFILE</h1>
+      </div>
+      <p class="page-description">ข้อมูลโปรไฟล์และการตั้งค่าบัญชี</p>
+    </div>
+
     <!-- 2-col desktop, 1-col mobile -->
     <div class="grid lg:grid-cols-3 gap-6">
 
@@ -212,6 +221,7 @@ import { useAchievementStore } from '@/stores/achievementStore'
 import AvatarFrame from '@/components/ui/AvatarFrame.vue'
 import AnimatedCounter from '@/components/ui/AnimatedCounter.vue'
 import AvatarCustomizer from '@/components/profile/AvatarCustomizer.vue'
+import GameIcon from '@/components/ui/GameIcon.vue'
 import {
   PhPencilSimple, PhX, PhSignOut, PhMedal,
   PhTrophy, PhSkull, PhCoins, PhSword, PhLightning,

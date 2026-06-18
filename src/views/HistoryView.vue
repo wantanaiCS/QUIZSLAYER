@@ -1,13 +1,13 @@
 <template>
-  <div class="max-w-4xl mx-auto px-4 py-10 relative z-10">
+  <div class="page-container">
 
     <!-- Header -->
-    <div class="mb-8">
-      <div class="flex items-center gap-2 mb-1">
-        <PhScroll :size="22" weight="duotone" class="text-qs-primary" aria-hidden="true" />
-        <h1 class="text-2xl font-bold text-qs-text">ประวัติการต่อสู้</h1>
+    <div class="page-header">
+      <div class="page-header-title">
+        <GameIcon name="scroll-unfurled" :size="24" class="text-qs-primary" />
+        <h1 class="page-title">BATTLE HISTORY</h1>
       </div>
-      <p class="text-qs-muted text-sm">สถิติและบันทึกทุกสมรภูมิ</p>
+      <p class="page-description">สถิติและบันทึกทุกสมรภูมิ</p>
     </div>
 
     <!-- Stats row (AnimatedCounter) -->
@@ -113,6 +113,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { usePlayerStore } from '@/stores/playerStore'
 import AnimatedCounter from '@/components/ui/AnimatedCounter.vue'
+import GameIcon from '@/components/ui/GameIcon.vue'
 import {
   PhScroll, PhSword, PhTrophy, PhSkull, PhCoins, PhCheckCircle,
   PhLightning,

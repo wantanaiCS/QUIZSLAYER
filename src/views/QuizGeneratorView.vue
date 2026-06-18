@@ -1,14 +1,13 @@
 <template>
-  <div class="max-w-4xl mx-auto px-4 py-12 relative z-10">
+  <div class="page-container">
 
     <!-- Header -->
-    <div class="text-center mb-10">
-      <div class="inline-flex items-center justify-center w-14 h-14 rounded-qs mb-4"
-           style="background: linear-gradient(135deg, #43d98f, #2e7d32);">
-        <PhRobot :size="28" weight="duotone" class="text-white" aria-hidden="true" />
+    <div class="page-header">
+      <div class="page-header-title">
+        <GameIcon name="artificial-intelligence" :size="24" class="text-qs-gold" />
+        <h1 class="page-title" style="color: #f4c842;">AI QUIZ GENERATOR</h1>
       </div>
-      <h1 class="text-2xl font-bold text-qs-text mb-2">AI Quiz Generator</h1>
-      <p class="text-qs-muted text-sm">ระบุหัวข้อ → สร้าง Prompt → วางใน AI → Import เล่นเลย</p>
+      <p class="page-description">ระบุหัวข้อ → สร้าง Prompt → วางใน AI → Import เล่นเลย</p>
     </div>
 
     <!-- Step Indicator -->

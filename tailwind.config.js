@@ -8,6 +8,7 @@ export default {
     extend: {
       fontFamily: {
         sans: ['Outfit', 'Inter', 'sans-serif'],
+        thai: ['Prompt', 'Sarabun', 'sans-serif'],
         pixel: ['"Press Start 2P"', 'monospace'],
       },
       colors: {

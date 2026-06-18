@@ -2,17 +2,17 @@
   <div class="max-w-4xl mx-auto px-4 py-10">
 
     <!-- Header -->
-    <div class="flex items-center gap-4 mb-8">
-      <button class="btn-ghost px-3 py-2 text-sm gap-1" @click="$router.push({ name: 'quiz-manage' })">
+    <div class="mb-8">
+      <button class="btn-ghost px-3 py-2 text-sm gap-1 mb-4" @click="$router.push({ name: 'quiz-manage' })">
         <PhArrowLeft :size="14" weight="bold" aria-hidden="true" />
         กลับ
       </button>
-      <div class="flex-1">
-        <div class="flex items-center gap-2">
-          <PhPencilSimple :size="20" weight="bold" class="text-qs-primary" aria-hidden="true" />
-          <h1 class="text-xl font-bold text-qs-text">แก้ไขชุดข้อสอบ</h1>
+      <div class="page-header">
+        <div class="page-header-title">
+          <GameIcon name="pencil" :size="24" class="text-qs-primary" />
+          <h1 class="page-title">EDIT QUIZ</h1>
         </div>
-        <p class="text-qs-muted text-sm mt-0.5">แก้ไขชื่อและรายการข้อสอบ</p>
+        <p class="page-description">แก้ไขชื่อและรายการข้อสอบ</p>
       </div>
     </div>
 
@@ -287,6 +287,7 @@ import { useRoute } from 'vue-router'
 import { useQuizStore } from '@/stores/quizStore'
 import { useToast } from '@/composables/useToast'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
+import GameIcon from '@/components/ui/GameIcon.vue'
 import {
   PhArrowLeft, PhPencilSimple, PhFloppyDisk, PhListBullets,
   PhMagnifyingGlass, PhTrash, PhCaretUp, PhCaretDown, PhLightbulb,

@@ -2,12 +2,12 @@
   <div class="max-w-5xl mx-auto px-4 py-10">
 
     <!-- Header -->
-    <div class="mb-8">
-      <div class="flex items-center gap-2 mb-1">
-        <PhMedal :size="22" weight="duotone" class="text-qs-gold" aria-hidden="true" />
-        <h1 class="text-2xl font-bold text-qs-text">Achievements</h1>
+    <div class="page-header">
+      <div class="page-header-title">
+        <GameIcon name="trophy" :size="24" class="text-qs-gold" />
+        <h1 class="page-title" style="color: #f4c842;">ACHIEVEMENTS</h1>
       </div>
-      <p class="text-qs-muted text-sm">
+      <p class="page-description">
         ปลดล็อกแล้ว
         <span class="text-qs-success font-bold">{{ unlocked.length }}</span>
         / {{ BADGES.length }} badges
@@ -71,6 +71,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useAchievementStore, BADGES } from '@/stores/achievementStore'
 import { usePlayerStore } from '@/stores/playerStore'
 import AchievementBadge from '@/components/achievements/AchievementBadge.vue'
+import GameIcon from '@/components/ui/GameIcon.vue'
 import { PhMedal } from '@phosphor-icons/vue'
 
 const achievementStore = useAchievementStore()

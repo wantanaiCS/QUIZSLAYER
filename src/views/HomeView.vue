@@ -76,8 +76,8 @@
 
       <!-- ── Game Modes ── -->
       <section class="mb-24">
-        <h2 class="text-2xl font-bold text-center text-qs-text mb-2">เลือกโหมดที่ใช่</h2>
-        <p class="text-qs-muted text-center text-sm mb-10">4 โหมดเกม รองรับทุกสไตล์การเล่น</p>
+        <h2 class="section-title">GAME MODES</h2>
+        <p class="section-description">4 โหมดเกม รองรับทุกสไตล์การเล่น</p>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           <router-link
@@ -198,8 +198,8 @@
 
       <!-- ── Core Systems ── -->
       <section class="mb-24">
-        <h2 class="text-2xl font-bold text-center text-qs-text mb-2">ระบบเกม</h2>
-        <p class="text-qs-muted text-center text-sm mb-10">กลไกที่ทำให้ทุกเกมต่างกัน</p>
+        <h2 class="section-title">GAME SYSTEMS</h2>
+        <p class="section-description">กลไกที่ทำให้ทุกเกมต่างกัน</p>
         <div class="grid md:grid-cols-3 gap-6">
           <div v-for="feat in features" :key="feat.title" class="card-glow-border p-6 card-tilt group">
             <div class="flex items-center justify-center w-14 h-14 rounded-qs mb-4 mx-auto transition-transform duration-300 group-hover:scale-110 group-hover:rotate-12"

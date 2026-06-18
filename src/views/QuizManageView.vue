@@ -1,19 +1,19 @@
 <template>
-  <div class="max-w-4xl mx-auto px-4 py-10 relative z-10">
+  <div class="page-container">
 
     <!-- Header -->
-    <div class="flex items-center justify-between mb-8">
-      <div>
-        <div class="flex items-center gap-2 mb-1">
-          <PhListBullets :size="22" weight="duotone" class="text-qs-primary" aria-hidden="true" />
-          <h1 class="text-2xl font-bold text-qs-text">ชุดข้อสอบของฉัน</h1>
-        </div>
-        <p class="text-qs-muted text-sm">จัดการ แก้ไข และลบชุดข้อสอบที่สร้างไว้</p>
+    <div class="page-header">
+      <div class="page-header-title">
+        <GameIcon name="list-bullets" :size="24" class="text-qs-primary" />
+        <h1 class="page-title">MY QUIZZES</h1>
       </div>
-      <router-link to="/generator" class="btn-primary gap-2">
-        <PhSparkle :size="16" weight="duotone" aria-hidden="true" />
-        สร้างใหม่
-      </router-link>
+      <p class="page-description">จัดการ แก้ไข และลบชุดข้อสอบที่สร้างไว้</p>
+      <div class="mt-4">
+        <router-link to="/generator" class="btn-primary gap-2">
+          <GameIcon name="artificial-intelligence" :size="16" />
+          สร้างใหม่
+        </router-link>
+      </div>
     </div>
 
     <!-- Loading -->
@@ -129,6 +129,7 @@ import { useQuizStore } from '@/stores/quizStore'
 import { useAuthStore } from '@/stores/authStore'
 import { useToast } from '@/composables/useToast'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
+import GameIcon from '@/components/ui/GameIcon.vue'
 import {
   PhListBullets, PhSparkle, PhRobot, PhSword,
   PhPencil, PhTrash, PhGlobe, PhLockKey,

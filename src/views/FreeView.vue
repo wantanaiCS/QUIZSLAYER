@@ -14,16 +14,12 @@
     />
 
     <!-- Header -->
-    <div class="text-center mb-8">
-      <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-qs-card border border-green-500/30 text-green-400 text-xs font-semibold mb-4">
-        <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse" aria-hidden="true"></span>
-        Free Mode — ไม่มี Game Over
+    <div class="page-header">
+      <div class="page-header-title">
+        <GameIcon name="book" :size="24" class="text-qs-success" />
+        <h1 class="page-title" style="color: #43d98f;">FREE MODE</h1>
       </div>
-      <h1 class="text-2xl font-bold text-qs-text mb-1 flex items-center justify-center gap-2">
-        <PhBooks :size="24" weight="duotone" class="text-qs-primary" aria-hidden="true" />
-        Free Practice
-      </h1>
-      <p class="text-qs-muted text-sm">ทำโจทย์สบาย ๆ ไม่มีเวลา ไม่มีพลังชีวิต</p>
+      <p class="page-description">ทำโจทย์สบาย ๆ ไม่มีเวลา ไม่มีพลังชีวิต</p>
     </div>
 
     <!-- Step 1: เลือกชุดข้อสอบ -->
@@ -328,6 +324,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useQuizStore } from '@/stores/quizStore'
 import { useAuthStore } from '@/stores/authStore'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
+import GameIcon from '@/components/ui/GameIcon.vue'
 import {
   PhBooks, PhSparkle, PhMagnifyingGlass, PhCheckCircle, PhXCircle,
   PhArrowLeft, PhArrowRight, PhArrowsClockwise, PhSkipForward,
