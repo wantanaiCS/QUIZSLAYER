@@ -318,6 +318,10 @@ watch(() => pvp.status, (newStatus) => {
       if (pvp.bgTheme) scene.events.emit('bgChanged', pvp.bgTheme)
     }
   }
+  // ★ Save PvP session when game finishes
+  if (newStatus === 'finished') {
+    pvp.savePvpSession()
+  }
 })
 
 // Watch lastEvent for opponent animations

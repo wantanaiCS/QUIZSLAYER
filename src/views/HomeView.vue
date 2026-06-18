@@ -21,24 +21,12 @@
           />
         </div>
 
-        <!-- Logged-in: welcome + stats strip -->
+        <!-- Logged-in: welcome message (stats hidden) -->
         <template v-if="authStore.isLoggedIn">
-          <p class="text-qs-muted text-base md:text-lg mb-6 leading-relaxed">
+          <p class="text-qs-muted text-base md:text-lg mb-10 leading-relaxed">
             ยินดีต้อนรับกลับ, <span class="text-gradient-primary font-bold text-neon">{{ authStore.displayName }}</span>
             — พร้อมลงสนามแล้วหรือยัง?
           </p>
-
-          <!-- Mini stats strip with glow -->
-          <div class="inline-flex flex-wrap items-center justify-center gap-3 mb-8">
-            <div v-for="stat in stats" :key="stat.label"
-                 class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-qs-card/80 backdrop-blur-sm border border-qs-border hover:border-qs-primary/50 transition-all duration-300 hover:shadow-[0_0_15px_rgba(108,99,255,0.3)]">
-              <component :is="stat.icon" :size="13" weight="duotone" :class="stat.color" class="icon-glow" aria-hidden="true" />
-              <span class="text-xs font-bold text-qs-text">
-                <AnimatedCounter :value="stat.value" :suffix="stat.suffix ?? ''" />
-              </span>
-              <span class="text-[10px] text-qs-muted">{{ stat.label }}</span>
-            </div>
-          </div>
         </template>
 
         <!-- Logged-out: tagline -->
@@ -49,27 +37,20 @@
           </p>
         </template>
 
-        <!-- CTA Buttons with enhanced style -->
+        <!-- CTA Buttons with Liquid Glass style -->
         <div class="flex flex-wrap items-center justify-center gap-4">
-          <router-link to="/battle" class="group relative btn-primary text-base px-8 py-4 overflow-hidden">
-            <span class="absolute inset-0 bg-gradient-to-r from-primary-light to-primary opacity-0 group-hover:opacity-100 transition-opacity duration-300" aria-hidden="true"></span>
-            <span class="relative flex items-center gap-2">
+          <router-link to="/battle" class="glass-button glass-button-danger text-base px-8 py-4">
+            <span class="glass-button-content font-pixel text-sm">
               <GameIcon name="sword" :size="18" />
-              {{ authStore.isLoggedIn ? 'เริ่มเล่น' : 'เริ่มเล่นเลย' }}
-            </span>
-          </router-link>
-          <router-link to="/pvp" class="group relative btn-ghost text-base px-8 py-4 overflow-hidden"
-                       style="border-color: rgba(255,71,87,0.5); color: #ff6b6b;">
-            <span class="absolute inset-0 bg-gradient-to-r from-red-500/20 to-red-600/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" aria-hidden="true"></span>
-            <span class="relative flex items-center gap-2">
-              <GameIcon name="crossed-swords" :size="18" />
-              ท้าเพื่อน PvP
+              PLAY
             </span>
           </router-link>
           <router-link v-if="!authStore.isLoggedIn" to="/login"
-                       class="btn-ghost text-base px-8 py-4 gap-2">
-            <PhUser :size="18" weight="duotone" aria-hidden="true" />
-            เข้าสู่ระบบ
+                       class="glass-button glass-button-primary text-base px-8 py-4">
+            <span class="glass-button-content font-pixel text-sm">
+              <GameIcon name="player" :size="18" />
+              LOGIN
+            </span>
           </router-link>
         </div>
       </section>
@@ -84,36 +65,29 @@
             v-for="mode in gameModes"
             :key="mode.to"
             :to="mode.to"
-            class="group card-glow-border card-tilt p-6 flex flex-col gap-4 relative"
+            class="glass-card group relative p-6 flex flex-col gap-4"
           >
-            <!-- Animated gradient background on hover -->
-            <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none rounded-qs"
-                 :style="{ background: mode.glow }" aria-hidden="true"></div>
-
-            <!-- Icon with hex shape -->
-            <div class="relative">
-              <div class="w-16 h-16 rounded-qs flex items-center justify-center flex-shrink-0 transition-all duration-300 group-hover:scale-110 group-hover:rotate-6"
-                   :style="{ background: mode.bg }">
-                <GameIcon :name="mode.iconName" :size="32" class="text-white drop-shadow-lg" />
+            <!-- Icon - Pixel Art Style with Gradient Effect -->
+            <div class="relative flex justify-center">
+              <div class="icon-gradient transition-all duration-300 group-hover:scale-110 group-hover:rotate-3"
+                   :style="{ '--icon-gradient': mode.iconGradient }">
+                <GameIcon :name="mode.iconName" :size="52" class="drop-shadow-lg" />
               </div>
-              <!-- Corner accent -->
-              <div class="absolute -top-1 -right-1 w-3 h-3 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                   :style="{ background: mode.accentColor }" aria-hidden="true"></div>
             </div>
 
             <div class="relative z-10">
-              <div class="flex items-center gap-2 mb-1">
-                <span class="font-bold text-qs-text text-base">{{ mode.name }}</span>
-                <span v-if="mode.tag" class="text-[10px] px-1.5 py-0.5 rounded-full font-semibold"
+              <div class="flex items-center justify-center gap-2 mb-2">
+                <span class="font-pixel text-qs-text text-sm uppercase tracking-wider text-center">{{ mode.name }}</span>
+                <span v-if="mode.tag" class="text-[10px] px-2 py-0.5 rounded-full font-semibold backdrop-blur-sm"
                       :class="mode.tagClass">{{ mode.tag }}</span>
               </div>
-              <p class="text-qs-muted text-xs leading-relaxed">{{ mode.desc }}</p>
+              <p class="text-qs-muted text-xs leading-relaxed font-thai text-center">{{ mode.desc }}</p>
             </div>
 
-            <div class="mt-auto flex items-center gap-1 text-xs font-semibold transition-all duration-200 relative z-10 group-hover:translate-x-1"
+            <div class="mt-auto flex items-center justify-center gap-1 font-pixel text-xs font-semibold transition-all duration-200 relative z-10 group-hover:translate-x-1 uppercase tracking-wider"
                  :style="{ color: mode.linkColor }">
-              เล่นเลย
-              <PhArrowRight :size="13" weight="bold" aria-hidden="true" />
+              PLAY
+              <GameIcon name="arrow-right" :size="13" />
             </div>
           </router-link>
         </div>
@@ -201,32 +175,33 @@
         <h2 class="section-title">GAME SYSTEMS</h2>
         <p class="section-description">กลไกที่ทำให้ทุกเกมต่างกัน</p>
         <div class="grid md:grid-cols-3 gap-6">
-          <div v-for="feat in features" :key="feat.title" class="card-glow-border p-6 card-tilt group">
-            <div class="flex items-center justify-center w-14 h-14 rounded-qs mb-4 mx-auto transition-transform duration-300 group-hover:scale-110 group-hover:rotate-12"
-                 :style="{ background: feat.bg }">
-              <GameIcon :name="feat.iconName" :size="28" class="text-white drop-shadow-lg" />
+          <div v-for="feat in features" :key="feat.title" class="glass-card group p-6">
+            <div class="flex justify-center mx-auto mb-4 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6">
+              <GameIcon :name="feat.iconName" :size="36" class="text-qs-primary drop-shadow-lg" />
             </div>
-            <h3 class="font-bold text-qs-text text-center mb-2">{{ feat.title }}</h3>
-            <p class="text-qs-muted text-sm leading-relaxed text-center">{{ feat.desc }}</p>
+            <h3 class="font-pixel text-xs text-qs-text text-center mb-2 uppercase tracking-wider">{{ feat.title }}</h3>
+            <p class="text-qs-muted text-sm leading-relaxed text-center font-thai">{{ feat.desc }}</p>
           </div>
         </div>
       </section>
 
       <!-- ── CTA ── -->
       <section class="pb-20">
-        <div class="card-glow-border p-12 text-center relative overflow-hidden">
-          <div class="absolute inset-0 pointer-events-none" aria-hidden="true"
-               style="background: linear-gradient(135deg, rgba(108,99,255,0.1), transparent 60%)"></div>
+        <div class="glass-card p-12 text-center relative overflow-hidden">
           <h2 class="text-3xl font-bold text-qs-text mb-4 relative z-10">พร้อมเป็น QuizSlayer?</h2>
           <p class="text-qs-muted mb-8 relative z-10">สร้างชุดข้อสอบจากหัวข้อที่คุณชอบ แล้วลงสนามรบเลย!</p>
           <div class="flex flex-wrap items-center justify-center gap-4 relative z-10">
-            <router-link to="/generator" class="btn-gold text-base px-8 py-4 gap-2">
-              <GameIcon name="artificial-intelligence" :size="18" />
-              สร้างข้อสอบด้วย AI
+            <router-link to="/generator" class="glass-button glass-button-gold text-base px-8 py-4">
+              <span class="glass-button-content">
+                <GameIcon name="lightning-bolt" :size="18" />
+                สร้างข้อสอบด้วย AI
+              </span>
             </router-link>
-            <router-link v-if="!authStore.isLoggedIn" to="/login" class="btn-ghost text-base px-8 py-4 gap-2">
-              <PhUser :size="18" weight="duotone" aria-hidden="true" />
-              เข้าสู่ระบบ
+            <router-link v-if="!authStore.isLoggedIn" to="/login" class="glass-button glass-button-ghost text-base px-8 py-4">
+              <span class="glass-button-content">
+                <GameIcon name="player" :size="18" />
+                เข้าสู่ระบบ
+              </span>
             </router-link>
           </div>
         </div>
@@ -244,8 +219,7 @@ import { useAchievementStore } from '@/stores/achievementStore'
 import AnimatedCounter from '@/components/ui/AnimatedCounter.vue'
 import GameIcon from '@/components/ui/GameIcon.vue'
 import {
-  PhTrophy, PhSkull, PhMedal, PhArrowRight, PhUser,
-  PhLightning, PhCoins,
+  PhTrophy, PhSkull, PhMedal,
 } from '@phosphor-icons/vue'
 
 const authStore        = useAuthStore()
@@ -261,71 +235,56 @@ onMounted(() => {
 const recentSessions   = computed(() => playerStore.sessions.slice(0, 3))
 const nextAchievement  = computed(() => achievementStore.nextUnlockable)
 
-const stats = computed(() => [
-  { label: 'ชนะ',        value: playerStore.totalWins, icon: PhTrophy,    color: 'text-qs-gold',    suffix: '' },
-  { label: 'Win Rate',   value: playerStore.winRate,   icon: PhLightning, color: 'text-qs-primary', suffix: '%' },
-  { label: 'Best Score', value: playerStore.bestScore, icon: PhTrophy,    color: 'text-qs-accent',  suffix: '' },
-  { label: 'Coins',      value: authStore.coins,       icon: PhCoins,     color: 'text-qs-gold',    suffix: '' },
-])
-
 const gameModes = [
   {
     to: '/battle',
     iconName: 'sword',
-    name: 'Battle Mode',
+    name: 'BATTLE',
     tag: 'Solo',
     tagClass: 'bg-qs-primary/20 text-qs-primary',
-    desc: 'ต่อสู้กับมอนสเตอร์ 5 ด่านด้วยการตอบคำถาม HP-based combat พร้อม Skill & Ultimate',
-    bg: 'linear-gradient(135deg, #6c63ff, #8b5cf6)',
-    glow: 'radial-gradient(ellipse at top left, rgba(108,99,255,0.15), transparent)',
-    linkColor: '#8b5cf6',
-    accentColor: '#8b5cf6',
+    desc: 'ท้า 5 ด่าน — ตอบผิดเสียเลือด ตอบถูกปล่อยสกิล',
+    linkColor: '#ff6b6b',
+    iconGradient: 'linear-gradient(135deg, #ff6b6b, #ff8e53)',
   },
   {
     to: '/pvp',
-    iconName: 'crossed-swords',
-    name: 'PvP Mode',
+    iconName: 'player-thunder-struck',
+    name: 'PvP',
     tag: 'Online',
     tagClass: 'bg-red-500/20 text-red-400',
-    desc: 'ท้าเพื่อนแบบ Real-time เป่ายิงฉุบก่อน แล้วแข่งตอบคำถาม — มี Lucky Box ทุก 5 ข้อ',
-    bg: 'linear-gradient(135deg, #ff4757, #ff6b6b)',
-    glow: 'radial-gradient(ellipse at top left, rgba(255,71,87,0.15), transparent)',
-    linkColor: '#ff6b6b',
-    accentColor: '#ff6b6b',
+    desc: 'เป่ายิ้งฉุบ → ใครตอบเร็วใครได้เทิร์น — มีกล่องสุ่มไอเทม',
+    linkColor: '#ff8e53',
+    iconGradient: 'linear-gradient(135deg, #ff8e53, #ffa726)',
   },
   {
     to: '/free',
     iconName: 'book',
-    name: 'Free Mode',
+    name: 'FREE',
     tag: 'ไม่มี Pressure',
     tagClass: 'bg-emerald-500/20 text-emerald-400',
-    desc: 'ทบทวนข้อสอบแบบสบายๆ ไม่มี HP ไม่มีเวลา เหมาะสำหรับอ่านก่อนสอบ',
-    bg: 'linear-gradient(135deg, #43d98f, #059669)',
-    glow: 'radial-gradient(ellipse at top left, rgba(67,217,143,0.15), transparent)',
+    desc: 'อ่านข้อสอบไม่มีเวลา ไม่มี HP — เหมาะสำหรับทบทวน',
     linkColor: '#43d98f',
-    accentColor: '#43d98f',
+    iconGradient: 'linear-gradient(135deg, #43d98f, #5eead4)',
   },
   {
     to: '/generator',
     iconName: 'lightning-bolt',
-    name: 'AI Generator',
+    name: 'AI GENERATOR',
     tag: 'AI',
     tagClass: 'bg-amber-500/20 text-amber-400',
-    desc: 'ระบุหัวข้อหรืออัปโหลดเอกสาร — AI สร้างข้อสอบ 4 ตัวเลือกให้ทันที พร้อมนำไปเล่นได้เลย',
-    bg: 'linear-gradient(135deg, #f4c842, #f97316)',
-    glow: 'radial-gradient(ellipse at top left, rgba(244,200,66,0.15), transparent)',
+    desc: 'พิมพ์หัวข้อหรืออัปโหลดไฟล์ → AI สร้างข้อสอบให้ในพริบตา',
     linkColor: '#f4c842',
-    accentColor: '#f4c842',
+    iconGradient: 'linear-gradient(135deg, #f4c842, #ffd93d)',
   },
 ]
 
 const features = [
-  { iconName: 'clock', title: 'Bar Time System', bg: 'linear-gradient(135deg, #6c63ff, #8b5cf6)', desc: 'Turn-based แบบไดนามิก — ใครเต็มก่อนได้ turn ก่อน ตอบถูกติดกันเพิ่มความเร็ว Bar' },
-  { iconName: 'lightning-bolt', title: 'Streak & Skill', bg: 'linear-gradient(135deg, #f59e0b, #f97316)', desc: 'ตอบถูก 3 ติดกัน → ปลด Skill | ตอบถูก 5 ติดกัน → Ultimate ดาเมจหนัก' },
-  { iconName: 'gem', title: 'AI Quiz Generator', bg: 'linear-gradient(135deg, #43d98f, #059669)', desc: 'ระบุหัวข้อหรืออัปโหลดเอกสาร → AI สร้างข้อสอบ 4 ตัวเลือกให้ทันที' },
-  { iconName: 'health', title: 'HP System', bg: 'linear-gradient(135deg, #ef4444, #dc2626)', desc: 'HP ผูกกับจำนวนข้อสอบ ปรับตามโหมด Easy / Normal / Hard' },
-  { iconName: 'crystal-ball', title: 'Lucky Box (PvP)', bg: 'linear-gradient(135deg, #a855f7, #9333ea)', desc: 'ทุก 5 ข้อใน PvP ได้รับไอเทม — ดูดHP ล็อกหน้าจอ สลับคำตอบ และอีกมาก' },
-  { iconName: 'multiple-targets', title: 'Coins & Rewards', bg: 'linear-gradient(135deg, #f4c842, #d97706)', desc: 'รับเหรียญจากชนะ Perfect Run ใช้ปลดล็อก Achievement และตกแต่งตัวละคร' },
+  { iconName: 'hourglass', title: 'Bar Time', desc: 'ใครเต็มก่อนได้ turn ก่อน — ตอบถูกติดเร่ง Bar เร็วขึ้น' },
+  { iconName: 'burning-embers', title: 'Streak & Skill', desc: 'ตอบถูก 3 ติด → Skill | ตอบถูก 5 ติด → Ultimate' },
+  { iconName: 'lightning-bolt', title: 'AI Generator', desc: 'พิมพ์หัวข้อ → AI สร้างข้อสอบให้ทันที' },
+  { iconName: 'hearts', title: 'HP System', desc: 'HP ผูกกับจำนวนข้อสอบ ปรับตาม Easy / Normal / Hard' },
+  { iconName: 'gem', title: 'Lucky Box', desc: 'ทุก 5 ข้อใน PvP ได้ไอเทม — ดูดHP ล็อกหน้าจอ สลับคำตอบ' },
+  { iconName: 'gold-bar', title: 'Coins & Rewards', desc: 'รับเหรียญจากชนะ ใช้ปลดล็อก Achievement และตกแต่งตัวละคร' },
 ]
 
 function formatDate(iso) {

@@ -14,15 +14,16 @@ export default {
       colors: {
         qs: {
           // Backgrounds — dark navy inspired by logo shadow
-          bg:         '#080b14',
-          'depth-0':  '#080b14',
-          'depth-1':  '#0c0f1c',
-          'depth-2':  '#101424',
-          'depth-3':  '#14182e',
-          'depth-4':  '#1a1f38',
-          surface:    '#101424',
-          card:       '#151a2e',
-          border:     '#1e2540',
+          bg:            '#080b14',
+          'bg-secondary': '#101424',
+          'depth-0':     '#080b14',
+          'depth-1':     '#0c0f1c',
+          'depth-2':     '#101424',
+          'depth-3':     '#14182e',
+          'depth-4':     '#1a1f38',
+          surface:       '#101424',
+          card:          '#151a2e',
+          border:        '#1e2540',
 
           // Primary = logo cyan (#4fc3f7 ? mark color)
           primary:    '#4fc3f7',
@@ -36,6 +37,7 @@ export default {
           success:    '#43d98f',
           danger:     '#ff4757',
           warning:    '#ffa502',
+          info:       '#4fc3f7',
 
           // Legacy mana kept for battle
           mana:       '#4fc3f7',

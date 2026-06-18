@@ -34,10 +34,14 @@ CREATE TABLE public.questions (
 );
 
 -- Game sessions (History)
+-- Modes: 'solo' = BATTLE MODE, 'pvp' = PvP BATTLE, 'free' = FREE MODE
+-- NOTE: To support 'free' mode, run the migration: supabase/migrations/add_free_mode.sql
 CREATE TABLE public.game_sessions (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   player_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
   quiz_set_id UUID REFERENCES public.quiz_sets(id) ON DELETE CASCADE,
+  quiz_title TEXT,                  -- cache title for history display
+  mode TEXT NOT NULL DEFAULT 'solo' CHECK (mode IN ('solo','pvp','free')),
   difficulty TEXT NOT NULL,
   stage_reached INTEGER NOT NULL,
   result TEXT NOT NULL, -- 'win', 'lose'
@@ -100,6 +104,8 @@ CREATE POLICY "Users can insert their own game sessions." ON public.game_session
 
 CREATE OR REPLACE FUNCTION public.record_game_session(
   p_quiz_set_id UUID,
+  p_quiz_title TEXT,
+  p_mode TEXT,
   p_difficulty TEXT,
   p_stage_reached INTEGER,
   p_result TEXT,
@@ -129,6 +135,8 @@ BEGIN
   INSERT INTO public.game_sessions (
     player_id,
     quiz_set_id,
+    quiz_title,
+    mode,
     difficulty,
     stage_reached,
     result,
@@ -143,6 +151,8 @@ BEGIN
   VALUES (
     auth.uid(),
     p_quiz_set_id,
+    COALESCE(p_quiz_title, 'Unknown'),
+    COALESCE(p_mode, 'solo'),
     p_difficulty,
     p_stage_reached,
     p_result,
@@ -165,7 +175,7 @@ END;
 $$;
 
 GRANT EXECUTE ON FUNCTION public.record_game_session(
-  UUID, TEXT, INTEGER, TEXT, INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, JSONB
+  UUID, TEXT, TEXT, TEXT, INTEGER, TEXT, INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, JSONB
 ) TO authenticated;
 
 CREATE OR REPLACE FUNCTION public.handle_new_user()

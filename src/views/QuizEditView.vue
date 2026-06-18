@@ -36,52 +36,147 @@
     <template v-else>
 
       <!-- ─── Set Info Card ─── -->
-      <div class="card p-6 mb-6">
-        <h2 class="font-bold text-qs-text mb-4">ข้อมูลชุดข้อสอบ</h2>
-        <div class="flex gap-3 flex-wrap">
-          <div class="flex-1 min-w-48">
+      <div class="card p-6 mb-6 space-y-5">
+        <div class="flex items-center justify-between">
+          <h2 class="font-bold text-qs-text">ข้อมูลชุดข้อสอบ</h2>
+          <button
+            v-if="metadataDirty"
+            class="btn-primary px-5 py-2.5 text-sm gap-1"
+            :disabled="quizStore.loading"
+            @click="saveMetadata"
+          >
+            <PhFloppyDisk :size="14" weight="bold" aria-hidden="true" />
+            {{ quizStore.loading ? '...' : 'บันทึกทั้งหมด' }}
+          </button>
+        </div>
+
+        <!-- Title & Description -->
+        <div class="space-y-3">
+          <div>
             <label class="input-label" for="edit-title">ชื่อชุดข้อสอบ</label>
             <input
               id="edit-title"
-              v-model="editTitle"
+              v-model="editMetadata.title"
               type="text"
-              maxlength="60"
+              maxlength="100"
               class="input text-sm"
-              :class="titleDirty ? 'border-qs-primary' : ''"
+              placeholder="เช่น คณิตศาสตร์ ม.3 บทที่ 1-5"
             />
           </div>
-          <div class="flex flex-col justify-end">
-            <button
-              class="btn-primary px-5 py-2.5 text-sm gap-1"
-              :disabled="!titleDirty || quizStore.loading"
-              @click="saveTitle"
-            >
-              <PhFloppyDisk :size="14" weight="bold" aria-hidden="true" />
-              {{ quizStore.loading ? '...' : 'บันทึก' }}
-            </button>
+          <div>
+            <label class="input-label" for="edit-description">คำอธิบาย (ไม่บังคับ)</label>
+            <textarea
+              id="edit-description"
+              v-model="editMetadata.description"
+              rows="2"
+              maxlength="200"
+              class="input text-sm resize-none"
+              placeholder="อธิบายสั้น ๆ เกี่ยวกับชุดข้อสอบนี้"
+            ></textarea>
+            <span class="text-xs text-qs-muted">{{ editMetadata.description?.length ?? 0 }}/200</span>
           </div>
         </div>
 
-        <div class="flex items-center gap-4 mt-4 pt-4 border-t border-qs-border text-sm text-qs-muted">
-          <span class="flex items-center gap-1">
+        <!-- Category, Difficulty, Visibility -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label class="input-label" for="edit-category">หมวดหมู่</label>
+            <select id="edit-category" v-model="editMetadata.category" class="input text-sm">
+              <option value="general">ทั่วไป</option>
+              <option value="science">วิทยาศาสตร์</option>
+              <option value="math">คณิตศาสตร์</option>
+              <option value="history">ประวัติศาสตร์</option>
+              <option value="language">ภาษา</option>
+              <option value="technology">เทคโนโลยี</option>
+              <option value="art">ศิลปะ</option>
+              <option value="sports">กีฬา</option>
+              <option value="other">อื่นๆ</option>
+            </select>
+          </div>
+          <div>
+            <label class="input-label" for="edit-difficulty">ความยาก</label>
+            <select id="edit-difficulty" v-model="editMetadata.difficulty" class="input text-sm">
+              <option value="easy">ง่าย</option>
+              <option value="normal">ปานกลาง</option>
+              <option value="hard">ยาก</option>
+              <option value="expert">ผู้เชี่ยวชาญ</option>
+            </select>
+          </div>
+          <div>
+            <label class="input-label">การมองเห็น</label>
+            <label class="flex items-center gap-2 cursor-pointer select-none mt-2">
+              <div
+                class="w-10 h-5 rounded-full relative transition-colors duration-200"
+                :class="editMetadata.is_public ? 'bg-qs-primary' : 'bg-qs-border'"
+                @click="editMetadata.is_public = !editMetadata.is_public"
+              >
+                <div
+                  class="absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200"
+                  :class="editMetadata.is_public ? 'translate-x-5' : 'translate-x-0.5'"
+                ></div>
+              </div>
+              <span class="text-sm" :class="editMetadata.is_public ? 'text-qs-primary' : 'text-qs-muted'">
+                {{ editMetadata.is_public ? 'สาธารณะ' : 'ส่วนตัว' }}
+              </span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Icon & Color -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="input-label">ไอคอน</label>
+            <div class="flex flex-wrap gap-2">
+              <button
+                v-for="icon in iconOptions"
+                :key="icon.name"
+                class="icon-select-btn"
+                :class="{ 'icon-select-active': editMetadata.icon_name === icon.name }"
+                :title="icon.label"
+                @click="editMetadata.icon_name = icon.name"
+              >
+                <GameIcon :name="icon.name" :size="20" aria-hidden="true" />
+              </button>
+            </div>
+          </div>
+          <div>
+            <label class="input-label">สีไอคอน</label>
+            <div class="flex flex-wrap gap-2">
+              <button
+                v-for="color in colorOptions"
+                :key="color"
+                class="color-select-btn"
+                :class="[`bg-gradient-${color}`, { 'ring-2 ring-qs-primary': editMetadata.icon_color === color }]"
+                :title="color"
+                @click="editMetadata.icon_color = color"
+              >
+                <PhCheck v-if="editMetadata.icon_color === color" :size="16" weight="bold" class="text-white" aria-hidden="true" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tags -->
+        <TagManager v-model="editMetadata.tags" :disabled="quizStore.loading" />
+
+        <!-- Stats (read-only) -->
+        <div class="flex items-center gap-4 pt-4 border-t border-qs-border text-sm text-qs-muted">
+          <span class="flex items-center gap-1" title="จำนวนข้อสอบ">
             <PhListBullets :size="14" weight="bold" aria-hidden="true" />
             {{ currentSet.questions?.length ?? 0 }} ข้อ
           </span>
-          <label class="flex items-center gap-2 cursor-pointer select-none">
-            <div
-              class="w-10 h-5 rounded-full relative transition-colors duration-200"
-              :class="currentSet.is_public ? 'bg-qs-primary' : 'bg-qs-border'"
-              @click="togglePublic"
-            >
-              <div
-                class="absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200"
-                :class="currentSet.is_public ? 'translate-x-5' : 'translate-x-0.5'"
-              ></div>
-            </div>
-            <span :class="currentSet.is_public ? 'text-qs-primary' : ''">
-              {{ currentSet.is_public ? 'สาธารณะ' : 'ส่วนตัว' }}
-            </span>
-          </label>
+          <span class="flex items-center gap-1" title="ถูกใจ">
+            <PhHeart :size="14" weight="bold" aria-hidden="true" />
+            {{ currentSet.likes_count ?? 0 }}
+          </span>
+          <span class="flex items-center gap-1" title="เล่น">
+            <PhGameController :size="14" weight="bold" aria-hidden="true" />
+            {{ currentSet.plays_count ?? 0 }}
+          </span>
+          <span class="flex items-center gap-1" title="ดู">
+            <PhEye :size="14" weight="bold" aria-hidden="true" />
+            {{ currentSet.views_count ?? 0 }}
+          </span>
         </div>
       </div>
 
@@ -288,9 +383,11 @@ import { useQuizStore } from '@/stores/quizStore'
 import { useToast } from '@/composables/useToast'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import GameIcon from '@/components/ui/GameIcon.vue'
+import TagManager from '@/components/quiz/TagManager.vue'
 import {
   PhArrowLeft, PhPencilSimple, PhFloppyDisk, PhListBullets,
   PhMagnifyingGlass, PhTrash, PhCaretUp, PhCaretDown, PhLightbulb,
+  PhCheck, PhHeart, PhGameController, PhEye,
 } from '@phosphor-icons/vue'
 
 const route     = useRoute()
@@ -299,8 +396,6 @@ const { toast } = useToast()
 
 const loading         = ref(true)
 const currentSet      = ref(null)
-const editTitle       = ref('')
-const titleDirty      = computed(() => editTitle.value !== currentSet.value?.title)
 const expandedIdx     = ref(null)
 const editingIdx      = ref(null)
 const deletingQIdx    = ref(null)
@@ -308,6 +403,50 @@ const deleteQTarget   = ref(null)
 const showDeleteQDialog = ref(false)
 const filterStage     = ref('all')
 const searchQ         = ref('')
+
+// Metadata editing
+const editMetadata = ref({
+  title: '',
+  description: '',
+  category: 'general',
+  difficulty: 'normal',
+  icon_name: 'book',
+  icon_color: 'blue',
+  is_public: false,
+  tags: []
+})
+
+const metadataDirty = computed(() => {
+  if (!currentSet.value) return false
+  return (
+    editMetadata.value.title !== currentSet.value.title ||
+    editMetadata.value.description !== (currentSet.value.description || '') ||
+    editMetadata.value.category !== (currentSet.value.category || 'general') ||
+    editMetadata.value.difficulty !== (currentSet.value.difficulty || 'normal') ||
+    editMetadata.value.icon_name !== (currentSet.value.icon_name || 'book') ||
+    editMetadata.value.icon_color !== (currentSet.value.icon_color || 'blue') ||
+    editMetadata.value.is_public !== currentSet.value.is_public ||
+    JSON.stringify(editMetadata.value.tags) !== JSON.stringify(currentSet.value.tags || [])
+  )
+})
+
+// Icon & Color options (RPG Awesome icons)
+const iconOptions = [
+  { name: 'book', label: 'หนังสือ' },
+  { name: 'flask', label: 'หลอดทดลอง' },
+  { name: 'scroll-unfurled', label: 'ม้วนหนังสือ' },
+  { name: 'speech-bubble', label: 'พูดคุย' },
+  { name: 'microphone', label: 'ไมโครโฟน' },
+  { name: 'light-bulb', label: 'หลอดไฟ' },
+  { name: 'jetpack', label: 'จรวด' },
+  { name: 'soccer-ball', label: 'ฟุตบอล' },
+  { name: 'shield', label: 'โล่' },
+  { name: 'sword', label: '剑' },
+  { name: 'trophy', label: 'ถ้วยรางวัล' },
+  { name: 'crystal-ball', label: 'ลูกแก้ว' },
+]
+
+const colorOptions = ['red', 'blue', 'green', 'yellow', 'purple', 'pink', 'orange', 'teal']
 
 const editForm = ref({
   question_text: '',
@@ -384,25 +523,53 @@ function cancelEdit() {
   editingIdx.value = null
 }
 
-async function saveTitle() {
-  const ok = await quizStore.updateQuizSet(route.params.id, { title: editTitle.value.trim() })
-  if (ok) {
-    currentSet.value = { ...currentSet.value, title: editTitle.value.trim() }
-    showToast('บันทึกชื่อแล้ว')
-  } else {
-    showToast(quizStore.error ?? 'บันทึกไม่สำเร็จ', 'error')
+async function saveMetadata() {
+  // Validation
+  if (!editMetadata.value.title.trim()) {
+    showToast('กรุณากรอกชื่อชุดข้อสอบ', 'error')
+    return
   }
-}
 
-async function togglePublic() {
-  const next = !currentSet.value.is_public
-  const ok = await quizStore.updateQuizSet(route.params.id, { is_public: next })
-  if (ok) {
-    currentSet.value = { ...currentSet.value, is_public: next }
-    showToast(next ? 'เผยแพร่สาธารณะแล้ว' : 'เปลี่ยนเป็นส่วนตัวแล้ว')
-  } else {
-    showToast(quizStore.error ?? 'เกิดข้อผิดพลาด', 'error')
+  const patch = {
+    title: editMetadata.value.title.trim(),
+    description: editMetadata.value.description?.trim() || null,
+    category: editMetadata.value.category,
+    difficulty: editMetadata.value.difficulty,
+    icon_name: editMetadata.value.icon_name,
+    icon_color: editMetadata.value.icon_color,
+    is_public: editMetadata.value.is_public,
   }
+
+  const ok = await quizStore.updateQuizSet(route.params.id, patch)
+  if (!ok) {
+    showToast(quizStore.error ?? 'บันทึกไม่สำเร็จ', 'error')
+    return
+  }
+
+  // Handle tags separately (add/remove as needed)
+  const currentTagIds = (currentSet.value.tags || []).map(t => t.id)
+  const newTagIds = editMetadata.value.tags.map(t => t.id)
+  
+  // Tags to add
+  const tagsToAdd = newTagIds.filter(id => !currentTagIds.includes(id))
+  for (const tagId of tagsToAdd) {
+    await quizStore.addTagToQuiz(route.params.id, tagId)
+  }
+  
+  // Tags to remove
+  const tagsToRemove = currentTagIds.filter(id => !newTagIds.includes(id))
+  for (const tagId of tagsToRemove) {
+    await quizStore.removeTagFromQuiz(route.params.id, tagId)
+  }
+
+  // Update local state
+  currentSet.value = {
+    ...currentSet.value,
+    ...patch,
+    tags: editMetadata.value.tags
+  }
+
+  showToast('บันทึกข้อมูลแล้ว')
 }
 
 async function saveQuestion(idx) {
@@ -468,13 +635,47 @@ onMounted(async () => {
   const loaded = await quizStore.loadQuizSet(id)
   if (loaded) {
     currentSet.value = loaded
-    editTitle.value  = loaded.title
+    // Initialize editMetadata from loaded quiz
+    editMetadata.value = {
+      title: loaded.title || '',
+      description: loaded.description || '',
+      category: loaded.category || 'general',
+      difficulty: loaded.difficulty || 'normal',
+      icon_name: loaded.icon_name || 'book',
+      icon_color: loaded.icon_color || 'blue',
+      is_public: loaded.is_public || false,
+      tags: loaded.tags || []
+    }
   }
   loading.value = false
 })
 </script>
 
 <style scoped>
+/* Icon select buttons */
+.icon-select-btn {
+  @apply flex items-center justify-center;
+  @apply w-12 h-12 rounded-qs;
+  @apply bg-qs-bg-secondary border-2 border-qs-border;
+  @apply text-qs-text;
+  @apply transition-all duration-150;
+  @apply hover:border-qs-primary hover:bg-qs-primary/5;
+}
+
+.icon-select-active {
+  @apply border-qs-primary bg-qs-primary/10 text-qs-primary;
+}
+
+/* Color select buttons */
+.color-select-btn {
+  @apply flex items-center justify-center;
+  @apply w-12 h-12 rounded-qs;
+  @apply border-2 border-transparent;
+  @apply transition-all duration-150;
+  @apply hover:scale-110;
+  @apply cursor-pointer;
+}
+
 .expand-enter-active,
 .expand-leave-active { transition: all 0.2s ease; }
 .expand-enter-from,

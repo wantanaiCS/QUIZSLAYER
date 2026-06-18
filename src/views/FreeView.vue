@@ -323,6 +323,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useQuizStore } from '@/stores/quizStore'
 import { useAuthStore } from '@/stores/authStore'
+import { usePlayerStore } from '@/stores/playerStore'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import GameIcon from '@/components/ui/GameIcon.vue'
 import {
@@ -334,6 +335,7 @@ import {
 
 const quizStore = useQuizStore()
 const authStore = useAuthStore()
+const playerStore = usePlayerStore()
 
 // ── State ──────────────────────────────────────────────────────────────────
 const step          = ref('pick')   // 'pick' | 'quiz' | 'result'
@@ -599,12 +601,42 @@ function nextQuestion() {
   }
 }
 
-function finishQuiz() {
+async function finishQuiz() {
   stopTimer()
   // save last score for this session
   if (selectedSet.value) {
     lastScoreMap.value[selectedSet.value.id] = scorePct.value
   }
+
+  // Save to battle history as 'free' mode
+  // Calculate score (percentage correct)
+  const scoreValue = scorePct.value
+
+  // Build answer summary similar to BattleView format
+  const answerSummary = answerLog.value.map(log => ({
+    question_id: null,  // FREE MODE doesn't use question IDs
+    question_text: log.question,
+    chosen_answer: log.skipped ? null : log.chosen,
+    correct_answer: log.correct_answer,
+    is_correct: log.correct,
+  }))
+
+  await playerStore.saveSession({
+    quiz_set_id: selectedSet.value.id,
+    quiz_title: selectedSet.value.title,
+    mode: 'free',
+    difficulty: 'free',  // FREE MODE doesn't have difficulty
+    stage_reached: questions.value.length,  // Stage = total questions
+    result: scoreValue >= 50 ? 'win' : 'lose',  // 50% = pass
+    score: scoreValue,
+    monsters_killed: 0,  // N/A for FREE MODE
+    total_answered: answeredCount.value,
+    total_correct: correctCount.value,
+    duration_seconds: elapsedSeconds.value,
+    coins_earned: 0,  // FREE MODE doesn't earn coins
+    answer_summary: answerSummary,
+  })
+
   step.value = 'result'
 }
 

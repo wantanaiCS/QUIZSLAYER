@@ -16,6 +16,71 @@
     <!-- Step 1: Select Quiz Set -->
     <div v-if="step === 1" class="animate-slide-up">
 
+      <!-- Search & Filter Bar -->
+      <div class="space-y-4 mb-6">
+        <!-- Search bar -->
+        <div class="search-bar">
+          <PhMagnifyingGlass :size="18" weight="bold" class="text-qs-muted" aria-hidden="true" />
+          <input
+            v-model="searchText"
+            type="text"
+            placeholder="ค้นหาชุดข้อสอบ..."
+            class="search-input"
+          />
+          <button
+            v-if="searchText"
+            class="search-clear-btn"
+            @click="searchText = ''"
+          >
+            <PhX :size="16" weight="bold" aria-hidden="true" />
+          </button>
+        </div>
+
+        <!-- Filter chips -->
+        <div class="filter-chips">
+          <!-- Difficulty filter -->
+          <div class="filter-dropdown">
+            <button class="filter-chip-btn" @click="toggleFilterDropdown('difficulty')">
+              <PhTarget :size="12" weight="bold" aria-hidden="true" />
+              <span>{{ getDifficultyLabel(filterDifficulty) }}</span>
+              <PhCaretDown :size="12" weight="bold" aria-hidden="true" />
+            </button>
+            <div v-if="openFilterDropdown === 'difficulty'" class="filter-dropdown-menu">
+              <button
+                v-for="diff in ['all', 'easy', 'normal', 'hard', 'expert']"
+                :key="diff"
+                class="filter-dropdown-item"
+                :class="{ 'active': filterDifficulty === diff }"
+                @click="filterDifficulty = diff; openFilterDropdown = null"
+              >
+                {{ getDifficultyLabel(diff) }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Category filter -->
+          <div class="filter-dropdown">
+            <button class="filter-chip-btn" @click="toggleFilterDropdown('category')">
+              <GameIcon :name="getCategoryIcon(filterCategory)" :size="12" aria-hidden="true" />
+              <span>{{ getCategoryLabel(filterCategory) }}</span>
+              <PhCaretDown :size="12" weight="bold" aria-hidden="true" />
+            </button>
+            <div v-if="openFilterDropdown === 'category'" class="filter-dropdown-menu">
+              <button
+                v-for="cat in categoryOptions"
+                :key="cat.value"
+                class="filter-dropdown-item"
+                :class="{ 'active': filterCategory === cat.value }"
+                @click="filterCategory = cat.value; openFilterDropdown = null"
+              >
+                <GameIcon :name="cat.icon" :size="14" aria-hidden="true" />
+                {{ cat.label }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Loading skeleton -->
       <div v-if="isLoadingSets" class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
         <div v-for="n in 3" :key="n" class="card p-5 animate-pulse">
@@ -23,9 +88,9 @@
           <div class="h-3 bg-qs-border rounded w-1/4"></div>
         </div>
       </div>
-      <div v-else-if="availableSets.length === 0" class="card p-12 text-center">
+      <div v-else-if="filteredAvailableSets.length === 0" class="card p-12 text-center">
         <PhBooks :size="40" weight="duotone" class="mx-auto mb-4 text-qs-border" aria-hidden="true" />
-        <p class="text-qs-muted mb-6">ยังไม่มีชุดข้อสอบ สร้างชุดแรกก่อนเลย!</p>
+        <p class="text-qs-muted mb-6">{{ availableSets.length === 0 ? 'ยังไม่มีชุดข้อสอบ สร้างชุดแรกก่อนเลย!' : 'ไม่พบชุดข้อสอบที่ตรงกับตัวกรอง' }}</p>
         <div class="flex flex-wrap gap-3 justify-center">
           <router-link to="/generator" class="btn-primary gap-2">
             <PhRobot :size="16" weight="duotone" aria-hidden="true" />
@@ -39,26 +104,58 @@
       </div>
       <div v-else class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
         <div
-          v-for="set in availableSets"
+          v-for="set in filteredAvailableSets"
           :key="set.id"
-          class="card-quiz"
-          :class="{ 'selected border-qs-primary shadow-qs': selectedSet?.id === set.id }"
+          class="quiz-select-card"
+          :class="{ 'selected': selectedSet?.id === set.id }"
           @click="selectedSet = set"
         >
-          <div class="flex items-start justify-between mb-3 gap-2">
-            <h3 class="font-bold text-qs-text leading-snug">{{ set.title }}</h3>
-            <span v-if="set.is_public" class="badge-public flex-shrink-0">Public</span>
-            <span v-else class="badge-private flex-shrink-0">Private</span>
+          <!-- Icon section -->
+          <div 
+            class="quiz-card-visual"
+            :class="`bg-gradient-${set.icon_color || 'blue'}`"
+          >
+            <GameIcon 
+              :name="set.icon_name || 'book'" 
+              :size="32" 
+              class="text-white drop-shadow-sm"
+              aria-hidden="true"
+            />
           </div>
-          <div class="flex items-center gap-2 text-sm text-qs-muted">
-            <PhListBullets :size="14" weight="bold" aria-hidden="true" />
-            {{ set.questions?.[0]?.count ?? 0 }} ข้อ
+
+          <!-- Content section -->
+          <div class="flex-1 flex flex-col">
+            <div class="flex items-start justify-between gap-2 mb-2">
+              <h3 class="font-bold text-qs-text leading-snug flex-1 line-clamp-2">{{ set.title }}</h3>
+              <span v-if="set.is_public" class="badge-public-sm flex-shrink-0">
+                <PhGlobe :size="10" weight="bold" aria-hidden="true" />
+              </span>
+              <span v-else class="badge-private-sm flex-shrink-0">
+                <PhLockKey :size="10" weight="bold" aria-hidden="true" />
+              </span>
+            </div>
+            
+            <div class="flex items-center gap-2 text-sm text-qs-muted flex-1">
+              <PhListBullets :size="14" weight="bold" aria-hidden="true" />
+              {{ set.questions?.[0]?.count ?? 0 }} ข้อ
+            </div>
+
+            <!-- Difficulty badge -->
+            <div class="mt-2">
+              <span 
+                class="inline-flex px-2 py-1 rounded-full text-xs font-medium"
+                :class="getDifficultyBadgeClass(set.difficulty)"
+              >
+                {{ getDifficultyLabel(set.difficulty) }}
+              </span>
+            </div>
           </div>
-          <!-- Progress fill bar -->
-          <div class="mt-3 h-0.5 bg-qs-border rounded-full overflow-hidden">
+
+          <!-- Progress fill bar (animated on select) -->
+          <div class="absolute bottom-0 left-0 right-0 h-1 bg-qs-border/30 overflow-hidden">
             <div
-              class="h-full rounded-full transition-all duration-300"
-              style="background: linear-gradient(90deg, #6c63ff, #8b5cf6);"
+              class="h-full transition-all duration-500 ease-out"
+              style="background: linear-gradient(90deg, #6c63ff, #8b5cf6, #9c27b0);"
               :style="{ width: selectedSet?.id === set.id ? '100%' : '0%' }"
             ></div>
           </div>
@@ -351,12 +448,14 @@ import SkillGauge from '@/components/battle/SkillGauge.vue'
 import QuestionCard from '@/components/battle/QuestionCard.vue'
 import StepIndicator from '@/components/ui/StepIndicator.vue'
 import AnimatedCounter from '@/components/ui/AnimatedCounter.vue'
+import GameIcon from '@/components/ui/GameIcon.vue'
 import { useToast } from '@/composables/useToast'
 import {
   PhSword, PhArrowRight, PhArrowLeft, PhArrowsClockwise,
   PhCheckCircle, PhXCircle, PhWarning, PhLightning, PhSkull,
   PhTimer, PhTrophy, PhCoins, PhBooks, PhRobot, PhListBullets,
-  PhShieldCheck, PhFlame,
+  PhShieldCheck, PhFlame, PhMagnifyingGlass, PhX, PhCaretDown,
+  PhTarget, PhGlobe, PhLockKey,
 } from '@phosphor-icons/vue'
 
 const quizStore   = useQuizStore()
@@ -371,6 +470,12 @@ const selectedDiff  = ref('normal')
 const loadingBattle = ref(false)
 const isLoadingSets = ref(false)
 let gameInstance    = null
+
+// Filter states
+const searchText = ref('')
+const filterDifficulty = ref('all')
+const filterCategory = ref('all')
+const openFilterDropdown = ref(null)
 
 // UI State for answering
 const showResult = ref(false)
@@ -404,6 +509,46 @@ const availableSets = computed(() => {
     return s.is_public || s.author_id === userId
   })
 })
+
+// Filtered sets based on search and filters
+const filteredAvailableSets = computed(() => {
+  return availableSets.value.filter(set => {
+    // Search filter
+    if (searchText.value.trim()) {
+      const query = searchText.value.toLowerCase().trim()
+      if (!set.title?.toLowerCase().includes(query) &&
+          !set.description?.toLowerCase().includes(query)) {
+        return false
+      }
+    }
+    
+    // Difficulty filter
+    if (filterDifficulty.value !== 'all' && set.difficulty !== filterDifficulty.value) {
+      return false
+    }
+    
+    // Category filter
+    if (filterCategory.value !== 'all' && set.category !== filterCategory.value) {
+      return false
+    }
+    
+    return true
+  })
+})
+
+// Category options (using RPG Awesome icons)
+const categoryOptions = [
+  { value: 'all', label: 'ทุกหมวดหมู่', icon: 'cubes' },
+  { value: 'general', label: 'ทั่วไป', icon: 'book' },
+  { value: 'science', label: 'วิทยาศาสตร์', icon: 'flask' },
+  { value: 'math', label: 'คณิตศาสตร์', icon: 'light-bulb' },
+  { value: 'history', label: 'ประวัติศาสตร์', icon: 'scroll-unfurled' },
+  { value: 'language', label: 'ภาษา', icon: 'speech-bubble' },
+  { value: 'technology', label: 'เทคโนโลยี', icon: 'gears' },
+  { value: 'art', label: 'ศิลปะ', icon: 'flower' },
+  { value: 'sports', label: 'กีฬา', icon: 'soccer-ball' },
+  { value: 'other', label: 'อื่นๆ', icon: 'help' }
+]
 
 const currentStageInfo = computed(() => STAGES[battleStore.currentStageId - 1] || STAGES[0])
 const currentQuestion  = computed(() => battleStore.currentQuestion)
@@ -519,6 +664,7 @@ watch(() => battleStore.phase, async (newPhase, oldPhase) => {
       duration_seconds: battleStore.durationSeconds,
       coins_earned: battleStore.coinsEarned,
       answer_summary: battleStore.answerLog,
+      mode: 'solo',
     })
   }
 })
@@ -620,6 +766,7 @@ async function reloadSets() {
   await quizStore.fetchPublicSets()
   await quizStore.fetchMySets()
   isLoadingSets.value = false
+  toast.success('โหลดชุดข้อสอบแล้ว')
 }
 
 function reset() {
@@ -628,6 +775,10 @@ function reset() {
   selectedDiff.value = 'normal'
   loadingBattle.value = false
   rageStageIds = new Set()
+  searchText.value = ''
+  filterDifficulty.value = 'all'
+  filterCategory.value = 'all'
+  openFilterDropdown.value = null
   if (gameInstance) {
     gameInstance.destroy(true)
     gameInstance = null
@@ -691,11 +842,44 @@ function handleUseSkill() {
   }
 }
 
+// Filter helper functions
+function toggleFilterDropdown(name) {
+  openFilterDropdown.value = openFilterDropdown.value === name ? null : name
+}
+
+function getDifficultyLabel(diff) {
+  const labels = {
+    'all': 'ทุกระดับ',
+    'easy': 'ง่าย',
+    'normal': 'ปานกลาง',
+    'hard': 'ยาก',
+    'expert': 'ผู้เชี่ยวชาญ'
+  }
+  return labels[diff] || 'ทุกระดับ'
+}
+
+function getDifficultyBadgeClass(diff) {
+  const map = {
+    'easy': 'bg-green-900/20 text-qs-success',
+    'normal': 'bg-yellow-900/20 text-qs-warning',
+    'hard': 'bg-red-900/20 text-qs-danger',
+    'expert': 'bg-purple-900/20 text-purple-300',
+  }
+  return map[diff] ?? 'bg-qs-surface text-qs-muted'
+}
+
+function getCategoryLabel(category) {
+  const option = categoryOptions.find(c => c.value === category)
+  return option?.label || 'ทุกหมวดหมู่'
+}
+
+function getCategoryIcon(category) {
+  const option = categoryOptions.find(c => c.value === category)
+  return option?.icon || 'cubes'
+}
+
 onMounted(async () => {
-  isLoadingSets.value = true
-  await quizStore.fetchPublicSets()
-  await quizStore.fetchMySets()
-  isLoadingSets.value = false
+  await reloadSets()
 })
 
 onUnmounted(() => {
@@ -715,6 +899,98 @@ onUnmounted(() => {
   max-width: none;
   min-height: calc(100vh - 5rem);
   padding: 0.5rem 1rem;
+}
+
+/* Search & Filter Styles */
+.search-bar {
+  @apply relative flex items-center gap-3;
+  @apply bg-qs-bg-secondary border border-qs-border rounded-qs;
+  @apply px-4 py-3;
+  @apply focus-within:border-qs-primary transition-colors;
+}
+
+.search-input {
+  @apply flex-1 bg-transparent text-qs-text text-sm;
+  @apply outline-none placeholder:text-qs-muted;
+}
+
+.search-clear-btn {
+  @apply flex items-center justify-center w-6 h-6 rounded-full;
+  @apply text-qs-muted hover:text-qs-text hover:bg-qs-border/50;
+  @apply transition-colors;
+}
+
+.filter-chips {
+  @apply flex flex-wrap items-center gap-2;
+}
+
+.filter-chip-btn {
+  @apply inline-flex items-center gap-2 px-3 py-2;
+  @apply bg-qs-bg-secondary border border-qs-border rounded-qs;
+  @apply text-xs font-medium text-qs-text;
+  @apply transition-all duration-150;
+  @apply hover:border-qs-primary/50 hover:bg-qs-primary/5;
+}
+
+.filter-dropdown {
+  @apply relative;
+}
+
+.filter-dropdown-menu {
+  @apply absolute top-full left-0 mt-1 z-20;
+  @apply min-w-[180px] max-h-[300px] overflow-y-auto;
+  @apply bg-qs-bg-secondary border border-qs-border rounded-qs shadow-lg;
+  @apply py-1;
+}
+
+.filter-dropdown-item {
+  @apply w-full flex items-center gap-2 px-3 py-2;
+  @apply text-sm text-qs-text text-left;
+  @apply transition-colors;
+  @apply hover:bg-qs-primary/10;
+}
+
+.filter-dropdown-item.active {
+  @apply bg-qs-primary/10 text-qs-primary font-medium;
+}
+
+/* Quiz Select Card Styles */
+.quiz-select-card {
+  @apply bg-qs-bg-secondary border-2 border-qs-border rounded-qs overflow-hidden;
+  @apply transition-all duration-200;
+  @apply hover:border-qs-primary/30 hover:shadow-md;
+  @apply cursor-pointer flex gap-3 p-4 relative;
+}
+
+.quiz-select-card.selected {
+  @apply border-qs-primary;
+  box-shadow: 0 0 20px rgba(108, 99, 255, 0.3), 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.quiz-card-visual {
+  @apply relative h-20 w-20 flex items-center justify-center overflow-hidden;
+  @apply rounded-qs flex-shrink-0;
+}
+
+.bg-gradient-red { @apply bg-gradient-to-br from-red-500 to-red-600; }
+.bg-gradient-blue { @apply bg-gradient-to-br from-blue-500 to-blue-600; }
+.bg-gradient-green { @apply bg-gradient-to-br from-green-500 to-green-600; }
+.bg-gradient-yellow { @apply bg-gradient-to-br from-yellow-500 to-yellow-600; }
+.bg-gradient-purple { @apply bg-gradient-to-br from-purple-500 to-purple-600; }
+.bg-gradient-pink { @apply bg-gradient-to-br from-pink-500 to-pink-600; }
+.bg-gradient-orange { @apply bg-gradient-to-br from-orange-500 to-orange-600; }
+.bg-gradient-teal { @apply bg-gradient-to-br from-teal-500 to-teal-600; }
+
+.badge-public-sm {
+  @apply inline-flex items-center justify-center;
+  @apply w-5 h-5 rounded-full;
+  @apply bg-qs-success/10 text-qs-success;
+}
+
+.badge-private-sm {
+  @apply inline-flex items-center justify-center;
+  @apply w-5 h-5 rounded-full;
+  @apply bg-qs-muted/20 text-qs-muted;
 }
 
 /* ── Desktop ≥1280px: 2-column side-by-side ── */

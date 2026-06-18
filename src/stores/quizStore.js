@@ -80,6 +80,10 @@ export const useQuizStore = defineStore('quiz', () => {
   const activeSet  = ref(null)
   const loading    = ref(false)
   const error      = ref(null)
+  
+  // Tags data
+  const allTags      = ref([])
+  const popularTags  = ref([])
 
   const publicSets = computed(() => quizSets.value.filter(q => q.is_public))
   const mySets     = computed(() => {
@@ -91,25 +95,53 @@ export const useQuizStore = defineStore('quiz', () => {
     loading.value = true
     if (isMockMode) {
       const memoryMockSets = quizSets.value.filter(set => set.id !== 'mock-1')
-      const storedMockSets = readStoredMockSets().map(toQuizSetSummary)
+      const storedMockSets = readStoredMockSets().map(set => ({
+        ...toQuizSetSummary(set),
+        // Add mock stats and metadata
+        category: set.category || 'general',
+        difficulty: set.difficulty || 'normal',
+        icon_name: set.icon_name || 'book',
+        icon_color: set.icon_color || 'blue',
+        likes_count: set.likes_count || 0,
+        views_count: set.views_count || 0,
+        plays_count: set.plays_count || 0,
+        shares_count: set.shares_count || 0,
+        tags: set.tags || [],
+        is_liked: false,
+        author_name: 'Mock User'
+      }))
       const importedMockSets = [...memoryMockSets, ...storedMockSets]
         .filter((set, index, sets) => sets.findIndex(s => s.id === set.id) === index)
       quizSets.value = [{
         id: 'mock-1',
         title: 'Mock Battle Test: 20 Questions',
         is_public: true,
-        questions: [{ count: 20 }]
+        questions: [{ count: 20 }],
+        category: 'technology',
+        difficulty: 'normal',
+        icon_name: 'computer',
+        icon_color: 'blue',
+        likes_count: 42,
+        views_count: 150,
+        plays_count: 38,
+        shares_count: 5,
+        tags: [
+          { id: 'mock-tag-1', name: 'Vue.js' },
+          { id: 'mock-tag-2', name: 'Frontend' }
+        ],
+        is_liked: false,
+        author_name: 'QuizSlayer Bot'
       }, ...importedMockSets]
       loading.value = false
       return
     }
 
     const { data, error: err } = await supabase
-      .from('quiz_sets')
+      .from('quiz_sets_with_details')
       .select('*, questions(count)')
       .eq('is_public', true)
       .order('created_at', { ascending: false })
-      .limit(20)
+      .limit(50)
     if (!err) {
       // merge — อย่า overwrite private sets ที่โหลดมาแล้วจาก fetchMySets
       const publicIds = (data ?? []).map(q => q.id)
@@ -129,7 +161,7 @@ export const useQuizStore = defineStore('quiz', () => {
     if (isMockMode) return
     loading.value = true
     const { data, error: err } = await supabase
-      .from('quiz_sets')
+      .from('quiz_sets_with_details')
       .select('*, questions(count)')
       .eq('author_id', authStore.user.id)
       .order('created_at', { ascending: false })
@@ -272,7 +304,16 @@ async function importFromJSON(title, questions) {
       title,
       is_public: false,
       author_id: authStore.user.id,
-      questions: formattedQuestions
+      questions: formattedQuestions,
+      category: 'general',
+      difficulty: 'normal',
+      icon_name: 'book',
+      icon_color: 'blue',
+      likes_count: 0,
+      views_count: 0,
+      plays_count: 0,
+      shares_count: 0,
+      tags: []
     }
     const storedSets = readStoredMockSets().filter(set => set.id !== mockId)
     writeStoredMockSets([newMockSet, ...storedSets])
@@ -463,10 +504,346 @@ async function importFromJSON(title, questions) {
     return true
   }
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Tags Management
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Fetch all tags (for autocomplete/selection)
+   */
+  async function fetchTags() {
+    if (isMockMode) {
+      allTags.value = [
+        { id: 'mock-tag-1', name: 'Vue.js', slug: 'vuejs', usage_count: 15 },
+        { id: 'mock-tag-2', name: 'Frontend', slug: 'frontend', usage_count: 12 },
+        { id: 'mock-tag-3', name: 'JavaScript', slug: 'javascript', usage_count: 20 },
+        { id: 'mock-tag-4', name: 'TypeScript', slug: 'typescript', usage_count: 8 },
+        { id: 'mock-tag-5', name: 'React', slug: 'react', usage_count: 10 },
+        { id: 'mock-tag-6', name: 'CSS', slug: 'css', usage_count: 7 },
+        { id: 'mock-tag-7', name: 'Tailwind', slug: 'tailwind', usage_count: 9 },
+        { id: 'mock-tag-8', name: 'API', slug: 'api', usage_count: 6 }
+      ]
+      popularTags.value = allTags.value.slice(0, 12)
+      return
+    }
+
+    const { data, error: err } = await supabase
+      .from('tags')
+      .select('*')
+      .order('name', { ascending: true })
+    
+    if (!err) {
+      allTags.value = data ?? []
+    } else {
+      error.value = err.message
+    }
+  }
+
+  /**
+   * Fetch popular tags (most used, for quick filter widget)
+   */
+  async function fetchPopularTags(limit = 20) {
+    if (isMockMode) {
+      popularTags.value = allTags.value.slice(0, limit)
+      return
+    }
+
+    const { data, error: err } = await supabase
+      .rpc('get_popular_tags', { p_limit: limit })
+    
+    if (!err) {
+      popularTags.value = data ?? []
+    } else {
+      error.value = err.message
+    }
+  }
+
+  /**
+   * Add or get tag (creates if doesn't exist)
+   */
+  async function addOrGetTag(tagName) {
+    const authStore = useAuthStore()
+    if (!authStore.user) {
+      error.value = 'ต้องเข้าสู่ระบบก่อน'
+      return null
+    }
+    
+    if (isMockMode) {
+      // Check if tag exists
+      let tag = allTags.value.find(t => t.name.toLowerCase() === tagName.toLowerCase())
+      if (!tag) {
+        tag = {
+          id: 'mock-tag-' + Date.now(),
+          name: tagName,
+          slug: tagName.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+          usage_count: 0
+        }
+        allTags.value.push(tag)
+      }
+      return tag
+    }
+
+    try {
+      console.log('[quizStore] Calling add_or_get_tag with:', tagName)
+      const { data, error: err } = await supabase
+        .rpc('add_or_get_tag', { p_name: tagName })
+      
+      if (err) {
+        console.error('[quizStore] Error from add_or_get_tag:', err)
+        error.value = `Database error: ${err.message || err.details || 'Unknown error'}`
+        return null
+      }
+      
+      console.log('[quizStore] Tag created/found, id:', data)
+      
+      // Refresh tags to get the new/updated one
+      await fetchTags()
+      const foundTag = allTags.value.find(t => t.id === data)
+      
+      if (!foundTag) {
+        console.error('[quizStore] Tag not found after creation, id:', data)
+        error.value = 'ไม่พบแท็กหลังสร้าง'
+        return null
+      }
+      
+      return foundTag
+    } catch (err) {
+      console.error('[quizStore] Exception in addOrGetTag:', err)
+      error.value = err.message || 'เกิดข้อผิดพลาดในการสร้างแท็ก'
+      return null
+    }
+  }
+
+  /**
+   * Add tag to quiz
+   */
+  async function addTagToQuiz(quizSetId, tagId) {
+    const authStore = useAuthStore()
+    if (!authStore.user) return false
+
+    if (isMockMode) {
+      const stored = readStoredMockSets()
+      const setIdx = stored.findIndex(s => s.id === quizSetId)
+      if (setIdx === -1) return false
+      
+      const tag = allTags.value.find(t => t.id === tagId)
+      if (!tag) return false
+      
+      if (!stored[setIdx].tags) stored[setIdx].tags = []
+      if (!stored[setIdx].tags.find(t => t.id === tagId)) {
+        stored[setIdx].tags.push(tag)
+      }
+      writeStoredMockSets(stored)
+      
+      // Update in quizSets
+      quizSets.value = quizSets.value.map(s =>
+        s.id === quizSetId ? { ...s, tags: stored[setIdx].tags } : s
+      )
+      return true
+    }
+
+    const { error: err } = await supabase
+      .from('quiz_tags')
+      .insert({ quiz_set_id: quizSetId, tag_id: tagId })
+    
+    if (!err) {
+      // Refresh the quiz to get updated tags
+      await fetchMySets()
+      return true
+    } else {
+      error.value = err.message
+      return false
+    }
+  }
+
+  /**
+   * Remove tag from quiz
+   */
+  async function removeTagFromQuiz(quizSetId, tagId) {
+    const authStore = useAuthStore()
+    if (!authStore.user) return false
+
+    if (isMockMode) {
+      const stored = readStoredMockSets()
+      const setIdx = stored.findIndex(s => s.id === quizSetId)
+      if (setIdx === -1) return false
+      
+      if (stored[setIdx].tags) {
+        stored[setIdx].tags = stored[setIdx].tags.filter(t => t.id !== tagId)
+      }
+      writeStoredMockSets(stored)
+      
+      // Update in quizSets
+      quizSets.value = quizSets.value.map(s =>
+        s.id === quizSetId ? { ...s, tags: stored[setIdx].tags } : s
+      )
+      return true
+    }
+
+    const { error: err } = await supabase
+      .from('quiz_tags')
+      .delete()
+      .eq('quiz_set_id', quizSetId)
+      .eq('tag_id', tagId)
+    
+    if (!err) {
+      // Refresh the quiz to get updated tags
+      await fetchMySets()
+      return true
+    } else {
+      error.value = err.message
+      return false
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Likes, Views, Shares, Plays
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Toggle like on a quiz
+   */
+  async function toggleLike(quizSetId) {
+    const authStore = useAuthStore()
+    if (!authStore.user) return false
+
+    if (isMockMode) {
+      // Toggle is_liked in memory
+      quizSets.value = quizSets.value.map(s => {
+        if (s.id === quizSetId) {
+          const newLiked = !s.is_liked
+          const newCount = newLiked 
+            ? (s.likes_count || 0) + 1 
+            : Math.max(0, (s.likes_count || 0) - 1)
+          return { ...s, is_liked: newLiked, likes_count: newCount }
+        }
+        return s
+      })
+      return true
+    }
+
+    const { data, error: err } = await supabase
+      .rpc('toggle_quiz_like', { p_quiz_set_id: quizSetId })
+    
+    if (!err && data) {
+      // Update local state
+      quizSets.value = quizSets.value.map(s =>
+        s.id === quizSetId 
+          ? { ...s, is_liked: data.is_liked, likes_count: data.likes_count }
+          : s
+      )
+      return true
+    } else {
+      error.value = err?.message
+      return false
+    }
+  }
+
+  /**
+   * Record a view (when user opens/views quiz details)
+   */
+  async function recordView(quizSetId) {
+    if (isMockMode) {
+      // Increment view count in memory
+      quizSets.value = quizSets.value.map(s =>
+        s.id === quizSetId 
+          ? { ...s, views_count: (s.views_count || 0) + 1 }
+          : s
+      )
+      return true
+    }
+
+    const { error: err } = await supabase
+      .rpc('record_quiz_view', { p_quiz_set_id: quizSetId })
+    
+    if (!err) {
+      // Update local state
+      quizSets.value = quizSets.value.map(s =>
+        s.id === quizSetId 
+          ? { ...s, views_count: (s.views_count || 0) + 1 }
+          : s
+      )
+      return true
+    } else {
+      error.value = err.message
+      return false
+    }
+  }
+
+  /**
+   * Record a share (when user shares quiz via link/social)
+   */
+  async function recordShare(quizSetId) {
+    const authStore = useAuthStore()
+    if (!authStore.user) return false
+
+    if (isMockMode) {
+      // Increment share count in memory
+      quizSets.value = quizSets.value.map(s =>
+        s.id === quizSetId 
+          ? { ...s, shares_count: (s.shares_count || 0) + 1 }
+          : s
+      )
+      return true
+    }
+
+    const { error: err } = await supabase
+      .rpc('record_quiz_share', { p_quiz_set_id: quizSetId })
+    
+    if (!err) {
+      // Update local state
+      quizSets.value = quizSets.value.map(s =>
+        s.id === quizSetId 
+          ? { ...s, shares_count: (s.shares_count || 0) + 1 }
+          : s
+      )
+      return true
+    } else {
+      error.value = err.message
+      return false
+    }
+  }
+
+  /**
+   * Record a play (when user starts playing the quiz)
+   */
+  async function recordPlay(quizSetId) {
+    if (isMockMode) {
+      // Increment play count in memory
+      quizSets.value = quizSets.value.map(s =>
+        s.id === quizSetId 
+          ? { ...s, plays_count: (s.plays_count || 0) + 1 }
+          : s
+      )
+      return true
+    }
+
+    const { error: err } = await supabase
+      .rpc('record_quiz_play', { p_quiz_set_id: quizSetId })
+    
+    if (!err) {
+      // Update local state
+      quizSets.value = quizSets.value.map(s =>
+        s.id === quizSetId 
+          ? { ...s, plays_count: (s.plays_count || 0) + 1 }
+          : s
+      )
+      return true
+    } else {
+      error.value = err.message
+      return false
+    }
+  }
+
   return {
     quizSets, activeSet, loading, error,
     publicSets, mySets,
+    allTags, popularTags,
     fetchPublicSets, fetchMySets, loadQuizSet, importFromJSON, setActiveSet,
     deleteQuizSet, updateQuizSet, updateQuestion, deleteQuestion,
+    // Tags
+    fetchTags, fetchPopularTags, addOrGetTag, addTagToQuiz, removeTagFromQuiz,
+    // Stats
+    toggleLike, recordView, recordShare, recordPlay,
   }
 })

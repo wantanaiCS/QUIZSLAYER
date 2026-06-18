@@ -13,6 +13,23 @@ inclusion: always
 
 ---
 
+## ⚠️ DATABASE SETUP REQUIRED
+
+### FREE MODE History Support
+To enable FREE MODE battle history recording, you **MUST run the SQL migration**:
+
+📄 File: `supabase/migrations/add_free_mode.sql` or use `FREE_MODE_SQL_COMMANDS.sql`
+
+**Steps:**
+1. Go to Supabase Console → SQL Editor
+2. Copy commands from `FREE_MODE_SQL_COMMANDS.sql`
+3. Paste and execute in SQL Editor
+4. Confirm with ✅ "Success"
+
+See: `FREE_MODE_HISTORY_SETUP.md` for full instructions.
+
+---
+
 ## ⚠️ CRITICAL: Known Environment Issues
 
 ### 1. Windows Path with `#` Character — MUST USE VITE 4.x

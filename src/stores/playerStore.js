@@ -62,6 +62,7 @@ export const usePlayerStore = defineStore('player', () => {
 
     const sessionPayload = {
       ...payload,
+      mode: payload.mode ?? 'solo',
       coins_earned: payload.result === 'win' ? payload.coins_earned : 0,
       answer_summary: payload.answer_summary ?? [],
     }
@@ -87,6 +88,8 @@ export const usePlayerStore = defineStore('player', () => {
 
     const { data, error: err } = await supabase.rpc('record_game_session', {
       p_quiz_set_id: sessionPayload.quiz_set_id,
+      p_quiz_title: sessionPayload.quiz_title,
+      p_mode: sessionPayload.mode,
       p_difficulty: sessionPayload.difficulty,
       p_stage_reached: sessionPayload.stage_reached,
       p_result: sessionPayload.result,

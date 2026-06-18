@@ -79,9 +79,13 @@
             {{ session.quiz_sets?.title ?? 'Unknown Quiz' }}
           </p>
           <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-qs-muted">
-            <span class="capitalize">{{ session.difficulty }}</span>
-            <span>·</span>
-            <span>Stage {{ session.stage_reached }}/5</span>
+            <span v-if="session.mode === 'pvp'" class="badge bg-qs-secondary/10 text-qs-secondary border-qs-secondary/30 text-[9px] font-bold">PvP</span>
+            <span v-else-if="session.mode === 'free'" class="badge bg-qs-success/10 text-qs-success border-qs-success/30 text-[9px] font-bold">FREE</span>
+            <span v-else class="capitalize">{{ session.difficulty }}</span>
+            <span v-if="session.mode === 'solo'">·</span>
+            <span v-if="session.mode === 'solo'">Stage {{ session.stage_reached }}/5</span>
+            <span v-if="session.mode === 'free'">·</span>
+            <span v-if="session.mode === 'free'">{{ session.stage_reached }} ข้อ</span>
             <span>·</span>
             <PhCheckCircle :size="11" weight="fill" class="text-qs-success" aria-hidden="true" />
             <span>{{ session.total_correct ?? 0 }}/{{ session.total_answered ?? 0 }}</span>
@@ -89,14 +93,13 @@
             <span>{{ formatDuration(session.duration_seconds ?? 0) }}</span>
             <span>·</span>
             <span>{{ formatDate(session.created_at) }}</span>
-            <span v-if="session.mode === 'pvp'" class="badge bg-qs-secondary/10 text-qs-secondary border-qs-secondary/30 text-[9px]">PvP</span>
           </div>
         </div>
 
         <!-- Score + coins -->
         <div class="text-right flex-shrink-0">
           <p class="text-base font-bold" :class="session.result === 'win' ? 'text-qs-success' : 'text-qs-danger'">
-            {{ session.score ?? 0 }}
+            {{ session.mode === 'free' ? session.score + '%' : session.score }}
           </p>
           <p class="text-[11px] text-qs-gold flex items-center justify-end gap-0.5">
             <PhCoins :size="11" weight="duotone" aria-hidden="true" />
@@ -127,6 +130,7 @@ const filters = [
   { key: 'win',  label: 'ชนะ'     },
   { key: 'lose', label: 'แพ้'     },
   { key: 'solo', label: 'Solo'    },
+  { key: 'free', label: 'FREE'    },
   { key: 'pvp',  label: 'PvP'     },
 ]
 
@@ -136,7 +140,8 @@ const filtered = computed(() => {
     case 'win':  return s.filter(x => x.result === 'win')
     case 'lose': return s.filter(x => x.result !== 'win')
     case 'pvp':  return s.filter(x => x.mode === 'pvp')
-    case 'solo': return s.filter(x => x.mode !== 'pvp')
+    case 'free': return s.filter(x => x.mode === 'free')
+    case 'solo': return s.filter(x => x.mode === 'solo')
     default:     return s
   }
 })

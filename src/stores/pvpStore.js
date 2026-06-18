@@ -103,6 +103,12 @@ export const usePvpStore = defineStore('pvp', () => {
   const questionsAnswered = ref(0)
   const questionSeed    = ref(0)
   const turnTimeLimit   = ref(10)    // seconds per turn; 0 = unlimited
+  const quizSetId       = ref(null)  // quiz_set_id for history
+  const quizSetTitle    = ref(null)  // quiz title for history
+  const gameStartTime   = ref(null)  // timestamp when game started (for duration)
+  const myAnswerLog     = ref([])    // track my answers for history
+  const myCorrectCount  = ref(0)     // my correct answers count
+  const sessionSaved    = ref(false) // prevent duplicate saves
 
   // ── RPS ──────────────────────────────────────────────────────────────────
   const rpsHost    = ref(null)
@@ -322,11 +328,13 @@ export const usePvpStore = defineStore('pvp', () => {
     return true
   }
 
-  function setQuizSet(questions, quizSetId) {
+  function setQuizSet(questions, quizSetIdValue, quizTitle = null) {
     // Mix in current time so every game play gets a different order
     const runtimeSeed = (questionSeed.value + Date.now()) % 999983
     const shuffled = seededShuffle(questions, runtimeSeed)
     allQuestions.value = shuffled
+    quizSetId.value = quizSetIdValue  // store for history
+    quizSetTitle.value = quizTitle    // store for history
     // sync to guest
     broadcast('state_sync', fullState())
   }
@@ -395,6 +403,7 @@ export const usePvpStore = defineStore('pvp', () => {
     setTimeout(() => {
       currentTurn.value = result === 'host_win' ? 'host' : 'guest'
       status.value = 'playing'
+      gameStartTime.value = Date.now()  // Start tracking game duration
       allQuestions.value.length > 0 && broadcast('state_sync', fullState())
       // Start timer for whoever goes first
       if (isMyTurn.value) _startTurnTimer()
@@ -428,6 +437,18 @@ export const usePvpStore = defineStore('pvp', () => {
     // chosenIndex === -1 means time ran out → treat as wrong
     const isCorrect = chosenIndex >= 0 && chosenIndex === q.correct_index
     revealActive.value = false
+
+    // Track my answer for history
+    myAnswerLog.value.push({
+      question_id:   q.id ?? null,
+      question_text: q.question_text,
+      chosen_index:  chosenIndex,
+      correct_index: q.correct_index,
+      is_correct:    isCorrect,
+      chosen_answer: chosenIndex >= 0 ? q.options?.[chosenIndex] : null,
+      correct_answer: q.options?.[q.correct_index] ?? null,
+    })
+    if (isCorrect) myCorrectCount.value++
 
     let dmg = isCorrect ? DAMAGE_PER_CORRECT : DAMAGE_PER_WRONG
     let stealTurn = false
@@ -657,6 +678,7 @@ export const usePvpStore = defineStore('pvp', () => {
     if (payload.turnTimeLimit != null) turnTimeLimit.value = payload.turnTimeLimit
     if (payload.rematchVoteHost != null)  rematchVoteHost.value  = payload.rematchVoteHost
     if (payload.rematchVoteGuest != null) rematchVoteGuest.value = payload.rematchVoteGuest
+    if (payload.quizSetTitle)       quizSetTitle.value     = payload.quizSetTitle
   }
 
   function onDisconnect(payload) {
@@ -691,6 +713,7 @@ export const usePvpStore = defineStore('pvp', () => {
       turnTimeLimit:      turnTimeLimit.value,
       rematchVoteHost:    rematchVoteHost.value,
       rematchVoteGuest:   rematchVoteGuest.value,
+      quizSetTitle:       quizSetTitle.value,
     }
   }
 
@@ -727,6 +750,53 @@ export const usePvpStore = defineStore('pvp', () => {
     if (channel) { supabase.removeChannel(channel); channel = null }
     _clearTurnTimer()
     $reset()
+  }
+
+  // ─── Session History ──────────────────────────────────────────────────────
+  async function savePvpSession() {
+    // Prevent duplicate saves
+    if (sessionSaved.value) return null
+    sessionSaved.value = true
+
+    // Only save if game actually started
+    if (!gameStartTime.value || !quizSetId.value) return null
+
+    const { usePlayerStore } = await import('@/stores/playerStore')
+    const playerStore = usePlayerStore()
+
+    const iWon = winner.value === myRole.value
+    const durationSeconds = Math.max(0, Math.round((Date.now() - gameStartTime.value) / 1000))
+
+    // Calculate score based on performance
+    let score = myCorrectCount.value * 10  // 10 points per correct
+    if (iWon) score += 50  // Bonus for winning
+    score += Math.max(0, MAX_HP - (MAX_HP - myHp.value)) * 2  // HP preservation bonus
+
+    // Calculate coins earned
+    let coins = 0
+    if (iWon) {
+      coins = 20 + myCorrectCount.value * 2  // Win: 20 base + 2 per correct
+    } else {
+      coins = Math.max(5, myCorrectCount.value)  // Lose: at least 5, or 1 per correct
+    }
+
+    const payload = {
+      quiz_set_id: quizSetId.value,
+      quiz_title: quizSetTitle.value ?? 'PvP Match',
+      difficulty: 'pvp',  // Mark as PvP difficulty
+      stage_reached: 1,   // PvP has no stages
+      result: iWon ? 'win' : 'lose',
+      score,
+      monsters_killed: 0,  // No monsters in PvP
+      total_answered: myAnswerLog.value.length,
+      total_correct: myCorrectCount.value,
+      duration_seconds: durationSeconds,
+      coins_earned: coins,
+      answer_summary: myAnswerLog.value,
+      mode: 'pvp',
+    }
+
+    return await playerStore.saveSession(payload)
   }
 
   // ─── Rematch ──────────────────────────────────────────────────────────────
@@ -778,6 +848,11 @@ export const usePvpStore = defineStore('pvp', () => {
     luckyPicked.value       = false
     rematchVoteHost.value   = false
     rematchVoteGuest.value  = false
+    // Reset session tracking for new match
+    gameStartTime.value     = null
+    myAnswerLog.value       = []
+    myCorrectCount.value    = 0
+    sessionSaved.value      = false
     // Re-shuffle questions with new seed + runtime offset for unique order each rematch
     if (allQuestions.value.length) {
       const runtimeSeed = (newSeed + Date.now()) % 999983
@@ -817,6 +892,12 @@ export const usePvpStore = defineStore('pvp', () => {
     currentQIndex.value  = 0
     questionsAnswered.value = 0
     turnTimeLimit.value  = 10
+    quizSetId.value      = null
+    quizSetTitle.value   = null
+    gameStartTime.value  = null
+    myAnswerLog.value    = []
+    myCorrectCount.value = 0
+    sessionSaved.value   = false
     _clearTurnTimer()
     rpsHost.value   = null
     rpsGuest.value  = null
@@ -840,7 +921,8 @@ export const usePvpStore = defineStore('pvp', () => {
     hostColor, guestColor, bgTheme,
     hostHp, guestHp, hostItems, guestItems,
     currentTurn, allQuestions, currentQIndex, questionsAnswered,
-    turnTimeLimit, turnTimeLeft,
+    turnTimeLimit, turnTimeLeft, quizSetId, quizSetTitle, gameStartTime,
+    myAnswerLog, myCorrectCount, sessionSaved,
     rpsHost, rpsGuest, rpsResult, myRpsPick,
     luckyCards, luckyPicked,
     rematchVoteHost, rematchVoteGuest,
@@ -854,7 +936,7 @@ export const usePvpStore = defineStore('pvp', () => {
     createRoom, joinRoom, setQuizSet, setColor, setReady, setBgTheme,
     setTurnTimeLimit,
     pickRps, submitAnswer, useItem, pickLuckyCard,
-    voteRematch, leaveRoom, broadcast, fullState, $reset,
+    voteRematch, leaveRoom, savePvpSession, broadcast, fullState, $reset,
     PLAYER_COLORS, PVP_ITEMS,
   }
 })

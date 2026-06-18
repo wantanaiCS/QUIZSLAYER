@@ -23,7 +23,7 @@
                    transition-all duration-150 hover:text-qs-text hover:bg-qs-card group"
             active-class="!text-qs-primary !bg-qs-card nav-active"
           >
-            <component :is="link.icon" :size="15" weight="duotone" aria-hidden="true" />
+            <GameIcon :name="link.iconName" :size="15" aria-hidden="true" />
             {{ link.label }}
             <!-- Active underline -->
             <span class="absolute bottom-0 left-2 right-2 h-0.5 rounded-full opacity-0 transition-opacity duration-200
@@ -107,7 +107,7 @@
             active-class="!text-qs-primary !bg-qs-card"
             @click="menuOpen = false"
           >
-            <component :is="link.icon" :size="20" weight="duotone" aria-hidden="true" />
+            <GameIcon :name="link.iconName" :size="20" aria-hidden="true" />
             {{ link.label }}
           </router-link>
         </div>
@@ -159,13 +159,8 @@ import { useAuthStore } from '@/stores/authStore'
 import BackgroundEffect from '@/components/ui/BackgroundEffect.vue'
 import ToastProvider from '@/components/ui/ToastProvider.vue'
 import AnimatedCounter from '@/components/ui/AnimatedCounter.vue'
+import GameIcon from '@/components/ui/GameIcon.vue'
 import {
-  PhSword,
-  PhUsersThree,
-  PhBooks,
-  PhRobot,
-  PhListBullets,
-  PhScroll,
   PhCoins,
   PhBell,
   PhUser,
@@ -178,12 +173,12 @@ const authStore = useAuthStore()
 const menuOpen  = ref(false)
 
 const navLinks = [
-  { to: '/battle',     icon: PhSword,       label: 'Battle'     },
-  { to: '/pvp',        icon: PhUsersThree,  label: 'PvP'        },
-  { to: '/free',       icon: PhBooks,       label: 'Free Mode'  },
-  { to: '/generator',  icon: PhRobot,       label: 'Generator'  },
-  { to: '/my-quizzes', icon: PhListBullets, label: 'My Quizzes' },
-  { to: '/history',    icon: PhScroll,      label: 'History'    },
+  { to: '/battle',     iconName: 'sword',              label: 'Battle'     },
+  { to: '/pvp',        iconName: 'player-thunder-struck', label: 'PvP'        },
+  { to: '/free',       iconName: 'book',               label: 'Free Mode'  },
+  { to: '/generator',  iconName: 'lightning-bolt',     label: 'Generator'  },
+  { to: '/my-quizzes', iconName: 'scroll-unfurled',    label: 'My Quizzes' },
+  { to: '/history',    iconName: 'scroll',             label: 'History'    },
 ]
 
 // Background configuration per route

@@ -381,7 +381,7 @@ async function handleCreate() {
     // โหลด quiz set แล้ว cache ไว้ใน store (จะ sync ไป guest เมื่อเกมเริ่ม)
     const fullSet = await quizStore.loadQuizSet(selectedSet.value.id)
     if (fullSet?.questions?.length) {
-      pvp.setQuizSet(fullSet.questions, fullSet.id)
+      pvp.setQuizSet(fullSet.questions, fullSet.id, fullSet.title)
     }
     createStep.value = 3
   }
