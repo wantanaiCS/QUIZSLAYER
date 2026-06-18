@@ -1,24 +1,26 @@
 <template>
   <div class="text-center">
-    <p class="text-xs font-pixel text-qs-accent mb-4 animate-pulse">✊ เป่ายิ้งฉุบ — ใครชนะได้ตอบก่อน!</p>
+    <p class="text-xs font-pixel text-qs-accent mb-4 animate-pulse">เป่ายิ้งฉุบ — ใครชนะได้ตอบก่อน!</p>
 
     <!-- My pick area -->
     <div v-if="!myPick" class="flex justify-center gap-4 mb-4">
       <button
         v-for="opt in options"
         :key="opt.id"
-        class="rps-btn text-4xl"
+        class="rps-btn"
         :class="{ 'ring-2 ring-qs-primary': myPick === opt.id }"
         @click="$emit('pick', opt.id)"
       >
-        {{ opt.emoji }}
+        <component :is="opt.icon" :size="32" weight="duotone" aria-hidden="true" />
         <span class="block text-[10px] text-qs-muted mt-1">{{ opt.label }}</span>
       </button>
     </div>
 
     <!-- Waiting -->
     <div v-else-if="!result" class="py-6">
-      <div class="text-5xl mb-3 animate-bounce">{{ pickedEmoji }}</div>
+      <div class="flex justify-center mb-3">
+        <component :is="pickedIcon" :size="52" weight="duotone" class="text-qs-primary animate-bounce" aria-hidden="true" />
+      </div>
       <p class="text-sm text-qs-muted animate-pulse">รอคู่แข่ง...</p>
     </div>
 
@@ -26,12 +28,12 @@
     <div v-else class="py-4">
       <div class="flex justify-center items-center gap-8 mb-4">
         <div class="text-center">
-          <div class="text-4xl mb-1">{{ emojiOf(hostChoice) }}</div>
+          <component :is="iconOf(hostChoice)" :size="44" weight="duotone" class="mx-auto mb-1 text-qs-primary" aria-hidden="true" />
           <p class="text-xs text-qs-muted">{{ hostName }}</p>
         </div>
         <div class="text-2xl font-pixel text-qs-accent">VS</div>
         <div class="text-center">
-          <div class="text-4xl mb-1">{{ emojiOf(guestChoice) }}</div>
+          <component :is="iconOf(guestChoice)" :size="44" weight="duotone" class="mx-auto mb-1 text-qs-secondary" aria-hidden="true" />
           <p class="text-xs text-qs-muted">{{ guestName }}</p>
         </div>
       </div>
@@ -43,36 +45,36 @@
 
 <script setup>
 import { computed } from 'vue'
+import { PhHandFist, PhScissors, PhHandPalm, PhQuestion } from '@phosphor-icons/vue'
 
 const props = defineProps({
-  myPick:     { type: String,  default: null },
-  hostChoice: { type: String,  default: null },
-  guestChoice:{ type: String,  default: null },
-  result:     { type: String,  default: null }, // 'host_win'|'guest_win'|'draw'
-  isHost:     { type: Boolean, default: true },
-  hostName:   { type: String,  default: 'Host' },
-  guestName:  { type: String,  default: 'Guest' },
+  myPick:      { type: String,  default: null },
+  hostChoice:  { type: String,  default: null },
+  guestChoice: { type: String,  default: null },
+  result:      { type: String,  default: null }, // 'host_win'|'guest_win'|'draw'
+  isHost:      { type: Boolean, default: true },
+  hostName:    { type: String,  default: 'Host' },
+  guestName:   { type: String,  default: 'Guest' },
 })
 defineEmits(['pick'])
 
 const options = [
-  { id: 'rock',     emoji: '✊', label: 'ค้อน' },
-  { id: 'scissors', emoji: '✌️', label: 'กรรไกร' },
-  { id: 'paper',    emoji: '🖐️', label: 'กระดาษ' },
+  { id: 'rock',     icon: PhHandFist, label: 'ค้อน'     },
+  { id: 'scissors', icon: PhScissors, label: 'กรรไกร'   },
+  { id: 'paper',    icon: PhHandPalm, label: 'กระดาษ'   },
 ]
 
-const emojiMap = { rock: '✊', scissors: '✌️', paper: '🖐️' }
+const iconMap = { rock: PhHandFist, scissors: PhScissors, paper: PhHandPalm }
 
-const pickedEmoji = computed(() => emojiMap[props.myPick] ?? '❓')
-
-function emojiOf(c) { return emojiMap[c] ?? '❓' }
+const pickedIcon = computed(() => iconMap[props.myPick] ?? PhQuestion)
+function iconOf(c) { return iconMap[c] ?? PhQuestion }
 
 const resultText = computed(() => {
-  if (props.result === 'draw') return '🤝 เสมอ! เป่าใหม่อีกครั้ง...'
+  if (props.result === 'draw') return 'เสมอ! เป่าใหม่อีกครั้ง...'
   const winnerName = props.result === 'host_win' ? props.hostName : props.guestName
   const isMe = (props.isHost && props.result === 'host_win') ||
                (!props.isHost && props.result === 'guest_win')
-  return isMe ? `🎉 คุณชนะ! ได้ตอบก่อน` : `${winnerName} ชนะ → ได้ตอบก่อน`
+  return isMe ? 'คุณชนะ! ได้ตอบก่อน' : `${winnerName} ชนะ — ได้ตอบก่อน`
 })
 
 const resultColor = computed(() => {
@@ -88,6 +90,6 @@ const resultColor = computed(() => {
   @apply flex flex-col items-center justify-center w-20 h-20 rounded-xl
          bg-qs-surface border-2 border-qs-border cursor-pointer
          hover:border-qs-primary hover:bg-qs-card transition-all duration-150
-         active:scale-95;
+         active:scale-95 text-qs-muted hover:text-qs-primary;
 }
 </style>

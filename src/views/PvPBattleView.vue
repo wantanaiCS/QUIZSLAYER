@@ -1,5 +1,5 @@
 <template>
-  <div class="pvp-page px-3 py-2 max-w-5xl mx-auto">
+  <div class="pvp-page px-3 py-2 max-w-5xl mx-auto relative z-10">
 
     <!-- ── RPS Phase ─────────────────────────────────────────────────────── -->
     <Transition name="fade-lock" mode="out-in">
@@ -49,6 +49,18 @@
     <!-- ── Main Battle Layout ────────────────────────────────────────────── -->
     <div class="pvp-layout">
 
+    <!-- Leave confirm dialog -->
+    <ConfirmDialog
+      v-model="showLeaveDialog"
+      title="ออกจากห้อง?"
+      message="ออกกลางคันจะนับว่าแพ้ทันที"
+      confirm="ออกเลย"
+      cancel="อยู่ต่อ"
+      :danger="true"
+      @confirm="exitGame"
+      @cancel="showLeaveDialog = false"
+    />
+
       <!-- Left col: Player cards + Phaser -->
       <div class="left-col">
 
@@ -91,25 +103,29 @@
 
           <!-- Turn indicator overlay -->
           <div class="absolute top-2 left-0 right-0 flex justify-center z-10 pointer-events-none">
-            <div class="px-3 py-1 rounded-full text-xs font-bold backdrop-blur-sm"
+            <div class="px-3 py-1 rounded-full text-xs font-bold backdrop-blur-sm flex items-center gap-1.5"
                  :class="pvp.isMyTurn
                    ? 'bg-qs-success/20 border border-qs-success text-qs-success'
                    : 'bg-qs-muted/10 border border-qs-border text-qs-muted'">
-              {{ pvp.isMyTurn ? '⚔️ ตาของคุณ!' : `⏳ รอ ${pvp.oppName}...` }}
+              <PhSword v-if="pvp.isMyTurn" :size="11" weight="bold" aria-hidden="true" />
+              <PhTimer v-else              :size="11" weight="duotone" aria-hidden="true" />
+              {{ pvp.isMyTurn ? 'ตาของคุณ!' : `รอ ${pvp.oppName}...` }}
             </div>
           </div>
 
           <!-- Lucky box countdown -->
           <div class="absolute bottom-1 left-0 right-0 flex justify-center z-10 pointer-events-none">
-            <div class="px-2 py-0.5 bg-qs-bg/70 rounded-full text-[10px] text-qs-muted">
-              🎁 Lucky Box ใน {{ luckyBoxCountdown }} ข้อ
+            <div class="px-2 py-0.5 bg-qs-bg/70 rounded-full text-[10px] text-qs-muted flex items-center gap-1">
+              <PhGift :size="10" weight="duotone" aria-hidden="true" />
+              Lucky Box ใน {{ luckyBoxCountdown }} ข้อ
             </div>
           </div>
         </div>
 
         <!-- Leave button -->
-        <button class="btn-secondary text-xs px-3 py-1.5 w-full" @click="confirmLeave">
-          🚪 ออกจากห้อง
+        <button class="btn-ghost text-xs px-3 py-1.5 w-full gap-2" @click="confirmLeave">
+          <PhSignOut :size="13" weight="bold" aria-hidden="true" />
+          ออกจากห้อง
         </button>
       </div>
 
@@ -128,14 +144,16 @@
           </p>
 
           <!-- Reveal hint -->
-          <div v-if="pvp.revealActive && pvp.isMyTurn" class="mb-3 px-3 py-2 bg-yellow-900/20 border border-yellow-500/40 rounded-qs text-xs text-yellow-300">
-            💡 เฉลย: {{ pvp.currentQ?.options?.[pvp.currentQ?.correct_index] }}
+          <div v-if="pvp.revealActive && pvp.isMyTurn" class="mb-3 px-3 py-2 bg-yellow-900/20 border border-yellow-500/40 rounded-qs text-xs text-yellow-300 flex items-center gap-2">
+            <PhLightbulb :size="14" weight="duotone" aria-hidden="true" />
+            เฉลย: {{ pvp.currentQ?.options?.[pvp.currentQ?.correct_index] }}
           </div>
 
           <!-- Frozen overlay on answers -->
           <div v-if="pvp.isFrozen && pvp.isMyTurn"
-               class="mb-3 px-3 py-2 bg-blue-900/30 border border-blue-400/50 rounded-qs text-xs text-blue-300 text-center animate-pulse">
-            🧊 ถูก Freeze! รอ {{ pvp.freezeSeconds }} วินาที...
+               class="mb-3 px-3 py-2 bg-blue-900/30 border border-blue-400/50 rounded-qs text-xs text-blue-300 text-center animate-pulse flex items-center justify-center gap-2">
+            <PhSnowflake :size="14" weight="duotone" aria-hidden="true" />
+            ถูก Freeze! รอ {{ pvp.freezeSeconds }} วินาที...
           </div>
 
           <!-- Options -->
@@ -153,11 +171,14 @@
             </button>
           </div>
 
-          <!-- Turn timer countdown bar (only shows when timer is active) -->
+          <!-- Turn timer countdown bar -->
           <div v-if="pvp.isMyTurn && pvp.status === 'playing' && pvp.turnTimeLimit > 0 && pvp.turnTimeLeft > 0"
                class="mt-3">
             <div class="flex justify-between items-center mb-1">
-              <span class="text-[10px] text-qs-muted">⏱️ เวลาที่เหลือ</span>
+              <span class="text-[10px] text-qs-muted flex items-center gap-1">
+                <PhTimer :size="10" weight="duotone" aria-hidden="true" />
+                เวลาที่เหลือ
+              </span>
               <span class="text-xs font-pixel"
                     :class="pvp.turnTimeLeft <= 5 ? 'text-qs-danger animate-pulse' : 'text-qs-accent'">
                 {{ pvp.turnTimeLeft }}s
@@ -174,8 +195,9 @@
 
           <!-- Opponent waiting hint -->
           <p v-if="!pvp.isMyTurn && pvp.status === 'playing'"
-             class="text-center text-xs text-qs-muted mt-4 animate-pulse">
-            ⏳ รอ {{ pvp.oppName }} ตอบ...
+             class="text-center text-xs text-qs-muted mt-4 animate-pulse flex items-center justify-center gap-1">
+            <PhTimer :size="12" weight="duotone" aria-hidden="true" />
+            รอ {{ pvp.oppName }} ตอบ...
             <span v-if="pvp.turnTimeLimit > 0 && pvp.turnTimeLeft > 0"
                   class="ml-1 font-pixel text-qs-accent">
               {{ pvp.turnTimeLeft }}s
@@ -198,7 +220,11 @@ import RPSPicker      from '@/components/pvp/RPSPicker.vue'
 import LuckyBox       from '@/components/pvp/LuckyBox.vue'
 import PlayerCard     from '@/components/pvp/PlayerCard.vue'
 import RematchOverlay from '@/components/pvp/RematchOverlay.vue'
+import ConfirmDialog  from '@/components/ui/ConfirmDialog.vue'
 import { PvPScene, PVP_BG_OPTIONS } from '@/lib/phaser/PvPScene'
+import {
+  PhSword, PhTimer, PhGift, PhLightbulb, PhSnowflake, PhSignOut,
+} from '@phosphor-icons/vue'
 
 const router    = useRouter()
 const pvp       = usePvpStore()
@@ -206,7 +232,8 @@ const quizStore = useQuizStore()
 
 const showResult  = ref(false)
 const selectedIdx = ref(null)
-const isSubmitting = ref(false)   // guard against double-submit
+const isSubmitting = ref(false)
+const showLeaveDialog = ref(false)
 let gameInstance  = null
 
 const labels  = ['A', 'B', 'C', 'D']
@@ -394,7 +421,7 @@ function handleGuestRematch() {
 }
 
 function confirmLeave() {
-  if (confirm('ออกจากห้องจะนับว่าแพ้ ยืนยันไหม?')) exitGame()
+  showLeaveDialog.value = true
 }
 
 // Redirect back if no room

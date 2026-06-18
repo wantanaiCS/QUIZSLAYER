@@ -3,6 +3,7 @@ import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
 import './style.css'
+// RPG Awesome is loaded from CDN in index.html to avoid font path issues
 
 const app = createApp(App)
 

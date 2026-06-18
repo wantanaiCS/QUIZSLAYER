@@ -1,29 +1,19 @@
 <template>
-  <div class="max-w-4xl mx-auto px-4 py-12">
+  <div class="max-w-4xl mx-auto px-4 py-12 relative z-10">
 
     <!-- Header -->
-    <div class="text-center mb-12">
-      <h1 class="text-3xl font-bold text-qs-text mb-2">🤖 AI Quiz Generator</h1>
-      <p class="text-qs-muted">ระบุหัวข้อ → สร้าง Prompt → วางใน AI → Import เล่นเลย</p>
+    <div class="text-center mb-10">
+      <div class="inline-flex items-center justify-center w-14 h-14 rounded-qs mb-4"
+           style="background: linear-gradient(135deg, #43d98f, #2e7d32);">
+        <PhRobot :size="28" weight="duotone" class="text-white" aria-hidden="true" />
+      </div>
+      <h1 class="text-2xl font-bold text-qs-text mb-2">AI Quiz Generator</h1>
+      <p class="text-qs-muted text-sm">ระบุหัวข้อ → สร้าง Prompt → วางใน AI → Import เล่นเลย</p>
     </div>
 
     <!-- Step Indicator -->
-    <div class="flex items-center justify-center gap-2 mb-10 text-xs font-medium">
-      <div v-for="(step, i) in steps" :key="i" class="flex items-center gap-2">
-        <div
-          class="w-7 h-7 rounded-full flex items-center justify-center font-bold transition-all"
-          :class="currentStep > i
-            ? 'bg-qs-success text-white'
-            : currentStep === i
-              ? 'bg-qs-primary text-white shadow-qs-glow'
-              : 'bg-qs-surface border border-qs-border text-qs-muted'"
-        >
-          <span v-if="currentStep > i">✓</span>
-          <span v-else>{{ i + 1 }}</span>
-        </div>
-        <span :class="currentStep === i ? 'text-qs-text' : 'text-qs-muted'">{{ step }}</span>
-        <span v-if="i < steps.length - 1" class="text-qs-border mx-1">→</span>
-      </div>
+    <div class="mb-10">
+      <StepIndicator :steps="steps" :current="currentStep" />
     </div>
 
     <!-- ─── Step 0: ตั้งค่า ─────────────────────────── -->
@@ -31,49 +21,57 @@
 
       <!-- หัวข้อ -->
       <div>
-        <label class="block text-sm font-medium text-qs-muted mb-2">
+        <label class="input-label" for="gen-topic">
           หัวข้อ / Topic <span class="text-qs-danger">*</span>
         </label>
-        <input
-          v-model="topic"
-          type="text"
-          placeholder="เช่น: ประวัติศาสตร์ไทย, Python Programming, Organic Chemistry"
-          class="w-full px-4 py-3 bg-qs-surface border border-qs-border rounded-qs text-qs-text placeholder-qs-muted focus:outline-none focus:border-qs-primary transition-colors"
-          @keydown.enter="goToStep1"
-        />
+        <div class="input-group">
+          <PhSparkle :size="16" class="input-icon" aria-hidden="true" />
+          <input
+            id="gen-topic"
+            v-model="topic"
+            type="text"
+            placeholder="เช่น: ประวัติศาสตร์ไทย, Python Programming, Organic Chemistry"
+            class="input"
+            @keydown.enter="goToStep1"
+          />
+        </div>
       </div>
 
       <!-- รายละเอียดเพิ่มเติม -->
       <div>
-        <label class="block text-sm font-medium text-qs-muted mb-2">
+        <label class="input-label" for="gen-details">
           รายละเอียดเพิ่มเติม
-          <span class="text-xs font-normal text-qs-muted ml-1">(Optional)</span>
+          <span class="text-xs font-normal text-qs-muted normal-case ml-1">(Optional)</span>
         </label>
         <textarea
+          id="gen-details"
           v-model="topicDetails"
           rows="3"
-          placeholder="ระบุหัวข้อย่อย, ขอบเขต, หรือข้อกำหนดพิเศษ&#10;เช่น: เน้นสาเหตุและผลกระทบ, ไม่รวมเหตุการณ์ในเอเชีย"
-          class="w-full px-4 py-3 bg-qs-surface border border-qs-border rounded-qs text-qs-text placeholder-qs-muted focus:outline-none focus:border-qs-primary transition-colors resize-none"
+          placeholder="ระบุหัวข้อย่อย, ขอบเขต, หรือข้อกำหนดพิเศษ"
+          class="input resize-none"
         ></textarea>
-        <p class="text-xs text-qs-muted mt-1">💡 ยิ่งระบุละเอียด AI จะสร้างข้อสอบได้ตรงกว่า</p>
+        <p class="text-xs text-qs-muted mt-1 flex items-center gap-1">
+          <PhLightbulb :size="12" weight="duotone" aria-hidden="true" />
+          ยิ่งระบุละเอียด AI จะสร้างข้อสอบได้ตรงกว่า
+        </p>
       </div>
 
       <!-- ─── แหล่งข้อมูล (Optional toggle) ─── -->
       <div class="border border-qs-border rounded-qs overflow-hidden">
         <!-- Toggle header -->
         <button
-          class="w-full flex items-center justify-between px-4 py-3 bg-qs-surface hover:bg-qs-surface/80 transition-colors text-left"
+          class="w-full flex items-center justify-between px-4 py-3 bg-qs-surface hover:bg-qs-depth-4 transition-colors text-left"
           @click="useSourceFile = !useSourceFile"
         >
           <div class="flex items-center gap-3">
-            <span class="text-lg">📁</span>
+            <PhFolder :size="18" weight="duotone" class="text-qs-muted flex-shrink-0" aria-hidden="true" />
             <div>
               <p class="text-sm font-medium text-qs-text">มีไฟล์แหล่งข้อมูล</p>
-              <p class="text-xs text-qs-muted">ระบุชื่อไฟล์ให้ AI ออกข้อสอบจากเนื้อหาไฟล์นั้น</p>
+              <p class="text-xs text-qs-muted">ระบุให้ AI ออกข้อสอบจากเนื้อหาไฟล์นั้น</p>
             </div>
           </div>
           <div class="flex items-center gap-2 flex-shrink-0">
-            <span v-if="useSourceFile" class="text-xs text-qs-success font-medium">✓ เปิดใช้งาน</span>
+            <span v-if="useSourceFile" class="text-xs text-qs-success font-medium">เปิดใช้งาน</span>
             <span v-else class="text-xs text-qs-muted">Optional</span>
             <div class="w-10 h-5 rounded-full transition-colors flex-shrink-0" :class="useSourceFile ? 'bg-qs-primary' : 'bg-qs-border'">
               <div class="w-4 h-4 bg-white rounded-full mt-0.5 transition-transform shadow" :class="useSourceFile ? 'translate-x-5' : 'translate-x-0.5'"></div>
@@ -83,33 +81,28 @@
 
         <!-- Content when toggle ON -->
         <div v-if="useSourceFile" class="p-4 border-t border-qs-border space-y-4">
-
-          <!-- คำแนะนำการใช้งาน -->
           <div class="rounded-qs bg-qs-bg border border-qs-border p-4 space-y-3 text-xs">
-            <p class="font-semibold text-qs-text text-sm">📖 วิธีใช้งาน</p>
-
+            <p class="font-semibold text-qs-text text-sm">วิธีใช้งาน</p>
             <div class="space-y-2 text-qs-muted">
               <div class="flex gap-2">
                 <span class="text-qs-primary font-bold flex-shrink-0">1.</span>
-                <p>กด <span class="text-qs-text font-medium">✨ สร้าง Master Prompt</span> — ระบบจะเพิ่มคำสั่งใน Prompt ให้ AI อ่านเนื้อหาจากไฟล์ที่คุณแนบ</p>
+                <p>กด <span class="text-qs-text font-medium">สร้าง Master Prompt</span> — ระบบจะเพิ่มคำสั่งให้ AI อ่านเนื้อหาจากไฟล์ที่คุณแนบ</p>
               </div>
               <div class="flex gap-2">
                 <span class="text-qs-primary font-bold flex-shrink-0">2.</span>
-                <p>เปิด AI ที่ต้องการ → <strong class="text-qs-warning">อัปโหลดหรือแนบไฟล์ของคุณก่อน</strong> (PDF, Word, สไลด์ ฯลฯ)</p>
+                <p>เปิด AI → <strong class="text-qs-warning">อัปโหลดหรือแนบไฟล์ของคุณก่อน</strong> (PDF, Word, สไลด์ ฯลฯ)</p>
               </div>
               <div class="flex gap-2">
                 <span class="text-qs-primary font-bold flex-shrink-0">3.</span>
-                <p>กด <span class="text-qs-text font-medium">📋 Copy</span> แล้ววาง Prompt — AI จะสร้างข้อสอบจากเนื้อหาในไฟล์โดยตรง</p>
+                <p>กด Copy แล้ววาง Prompt — AI จะสร้างข้อสอบจากเนื้อหาไฟล์โดยตรง</p>
               </div>
             </div>
-
-            <!-- AI ที่รองรับ file upload -->
             <div class="pt-2 border-t border-qs-border">
               <p class="font-medium text-qs-text mb-2">AI ที่รองรับการอัปโหลดไฟล์:</p>
               <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <div v-for="ai in aiWithFileSupport" :key="ai.name"
                   class="flex items-start gap-2 p-2 rounded-qs bg-qs-surface border border-qs-border">
-                  <span class="flex-shrink-0">{{ ai.icon }}</span>
+                  <span class="flex-shrink-0 text-base">{{ ai.icon }}</span>
                   <div>
                     <p class="font-medium text-qs-text">{{ ai.name }}</p>
                     <p class="text-qs-muted text-[10px] leading-relaxed">{{ ai.note }}</p>
@@ -124,27 +117,26 @@
       <!-- ─── Settings grid ─── -->
       <div class="grid sm:grid-cols-2 gap-4">
         <div>
-          <label class="block text-sm font-medium text-qs-muted mb-2">
-            จำนวนข้อ <span class="text-xs font-normal ml-1">(1–100)</span>
-          </label>
+          <label class="input-label" for="gen-num">จำนวนข้อ <span class="text-xs font-normal normal-case ml-1">(1–100)</span></label>
           <input
+            id="gen-num"
             v-model.number="numQuestions"
             type="number" min="1" max="100" placeholder="20"
-            class="w-full px-4 py-3 bg-qs-surface border border-qs-border rounded-qs text-qs-text placeholder-qs-muted focus:outline-none focus:border-qs-primary transition-colors"
+            class="input"
             @input="clampNumQuestions"
           />
           <p class="text-xs mt-1.5 transition-colors" :class="questionCountHint.color">{{ questionCountHint.text }}</p>
         </div>
         <div>
-          <label class="block text-sm font-medium text-qs-muted mb-2">ภาษา</label>
-          <select v-model="lang" class="w-full px-4 py-3 bg-qs-surface border border-qs-border rounded-qs text-qs-text focus:outline-none focus:border-qs-primary">
+          <label class="input-label" for="gen-lang">ภาษา</label>
+          <select id="gen-lang" v-model="lang" class="input">
             <option value="thai">ภาษาไทย</option>
             <option value="english">English</option>
           </select>
         </div>
         <div>
-          <label class="block text-sm font-medium text-qs-muted mb-2">ความยาก</label>
-          <select v-model="difficulty" class="w-full px-4 py-3 bg-qs-surface border border-qs-border rounded-qs text-qs-text focus:outline-none focus:border-qs-primary">
+          <label class="input-label" for="gen-diff">ความยาก</label>
+          <select id="gen-diff" v-model="difficulty" class="input">
             <option value="mixed">Mixed (แนะนำ)</option>
             <option value="easy">Easy</option>
             <option value="normal">Normal</option>
@@ -152,19 +144,21 @@
           </select>
         </div>
         <div>
-          <label class="block text-sm font-medium text-qs-muted mb-2">คำอธิบายเฉลย</label>
-          <select v-model="explanationLength" class="w-full px-4 py-3 bg-qs-surface border border-qs-border rounded-qs text-qs-text focus:outline-none focus:border-qs-primary">
+          <label class="input-label" for="gen-expl">คำอธิบายเฉลย</label>
+          <select id="gen-expl" v-model="explanationLength" class="input">
             <option value="short">สั้น — 1 ประโยค (ประหยัด Token)</option>
             <option value="long">ยาว — อ่านแล้วเข้าใจได้เลย</option>
           </select>
           <p class="text-xs text-qs-muted mt-1.5">
-            {{ explanationLength === 'short' ? '💡 เหมาะสำหรับทบทวนเร็วๆ' : '📖 อธิบายเหตุผล + บริบทครบ' }}
+            {{ explanationLength === 'short' ? 'เหมาะสำหรับทบทวนเร็วๆ' : 'อธิบายเหตุผล + บริบทครบ' }}
           </p>
         </div>
       </div>
 
-      <button class="btn-primary w-full py-4" :disabled="!topic.trim()" @click="goToStep1">
-        ✨ สร้าง Master Prompt →
+      <button class="btn-primary w-full py-4 gap-2" :disabled="!topic.trim()" @click="goToStep1">
+        <PhSparkle :size="18" weight="duotone" aria-hidden="true" />
+        สร้าง Master Prompt
+        <PhArrowRight :size="16" weight="bold" aria-hidden="true" />
       </button>
     </div>
 
@@ -180,11 +174,13 @@
             </p>
           </div>
           <div class="flex gap-2 flex-shrink-0">
-            <button class="btn-secondary text-xs px-3 py-1.5" @click="showFullPrompt = !showFullPrompt">
-              {{ showFullPrompt ? '📦 ย่อลง' : '📖 ดูเต็ม' }}
+            <button class="btn-icon" :aria-label="showFullPrompt ? 'ย่อ Prompt' : 'ดู Prompt เต็ม'" @click="showFullPrompt = !showFullPrompt">
+              <PhEye v-if="!showFullPrompt" :size="15" weight="duotone" aria-hidden="true" />
+              <PhEyeSlash v-else :size="15" weight="duotone" aria-hidden="true" />
             </button>
-            <button class="btn-secondary text-xs px-3 py-1.5" @click="copyPrompt">
-              {{ copied ? '✅ Copied!' : '📋 Copy' }}
+            <button class="btn-icon" :aria-label="copied ? 'คัดลอกแล้ว' : 'คัดลอก Prompt'" @click="copyPrompt">
+              <PhCopy v-if="!copied" :size="15" weight="bold" aria-hidden="true" />
+              <PhCheckCircle v-else :size="15" weight="fill" class="text-qs-success" aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -213,8 +209,11 @@
           <a
             v-for="ai in aiLinks" :key="ai.name"
             :href="ai.url" target="_blank" rel="noopener noreferrer"
-            class="btn-secondary text-xs px-4 py-2 gap-2"
-          >{{ ai.icon }} {{ ai.name }}</a>
+            class="btn-ghost text-xs px-4 py-2 gap-2"
+          >
+            {{ ai.icon }} {{ ai.name }}
+            <PhArrowSquareOut :size="13" weight="bold" aria-hidden="true" />
+          </a>
         </div>
         <p class="text-xs text-qs-muted mt-3">1. Copy Prompt → 2. เปิด AI → 3. วาง → 4. รับ JSON กลับมา</p>
       </div>
@@ -222,20 +221,25 @@
       <!-- JSON Import -->
       <div class="card p-6">
         <h3 class="font-bold text-qs-text mb-4">📥 วาง JSON ที่ได้จาก AI</h3>
-        <div v-if="importError" class="mb-4 p-3 rounded-qs bg-red-900/20 border border-qs-danger text-qs-danger text-sm">
-          ❌ {{ importError }}
+        <div v-if="importError" class="mb-4 p-3 rounded-qs bg-red-900/20 border border-qs-danger/40 text-qs-danger text-sm flex items-start gap-2">
+          <PhXCircle :size="16" weight="fill" class="flex-shrink-0 mt-0.5" aria-hidden="true" />
+          {{ importError }}
         </div>
         <textarea
           v-model="jsonInput"
           rows="8"
           placeholder='วาง JSON array ที่ได้จาก AI ที่นี่...'
-          class="w-full px-4 py-3 bg-qs-surface border border-qs-border rounded-qs text-qs-text placeholder-qs-muted text-xs font-mono focus:outline-none focus:border-qs-primary transition-colors resize-y"
+          class="input font-mono text-xs resize-y"
           @input="importError = ''"
         ></textarea>
         <div class="flex gap-3 mt-4">
-          <button class="btn-secondary flex-shrink-0" @click="currentStep = 0">← แก้ไข</button>
-          <button class="btn-primary flex-1 py-3" :disabled="!jsonInput.trim()" @click="parseAndPreview">
-            🔍 ตรวจสอบ JSON →
+          <button class="btn-ghost flex-shrink-0 gap-1" @click="currentStep = 0">
+            <PhArrowLeft :size="14" weight="bold" aria-hidden="true" />
+            แก้ไข
+          </button>
+          <button class="btn-primary flex-1 py-3 gap-2" :disabled="!jsonInput.trim()" @click="parseAndPreview">
+            <PhMagnifyingGlass :size="16" weight="bold" aria-hidden="true" />
+            ตรวจสอบ JSON
           </button>
         </div>
       </div>
@@ -252,23 +256,23 @@
           <div class="flex gap-2 flex-shrink-0 flex-wrap justify-end">
             <span
               v-for="(count, diff) in difficultyCount" :key="diff"
-              class="px-2.5 py-1 rounded-full text-xs font-medium"
               :class="{
-                'bg-green-900/30 text-qs-success border border-qs-success/30': diff === 'easy',
-                'bg-yellow-900/30 text-qs-warning border border-qs-warning/30': diff === 'normal',
-                'bg-red-900/30 text-qs-danger border border-qs-danger/30': diff === 'hard',
+                'badge-easy':   diff === 'easy',
+                'badge-normal': diff === 'normal',
+                'badge-hard':   diff === 'hard',
               }"
             >{{ diff }}: {{ count }}</span>
           </div>
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-qs-muted mb-2">ชื่อชุดข้อสอบ <span class="text-qs-danger">*</span></label>
+          <label class="input-label" for="gen-title">ชื่อชุดข้อสอบ <span class="text-qs-danger">*</span></label>
           <input
+            id="gen-title"
             v-model="setTitle" type="text"
             placeholder="เช่น: ประวัติศาสตร์ไทย 20 ข้อ"
             maxlength="60"
-            class="w-full px-4 py-3 bg-qs-surface border border-qs-border rounded-qs text-qs-text placeholder-qs-muted focus:outline-none focus:border-qs-primary transition-colors"
+            class="input"
           />
         </div>
       </div>
@@ -279,12 +283,16 @@
           <h3 class="font-bold text-qs-text">ตัวอย่างข้อสอบ (3 ข้อแรก)</h3>
           <div class="flex gap-3 items-center">
             <button
-              class="text-xs px-3 py-1.5 rounded-qs transition-colors"
+              class="text-xs px-3 py-1.5 rounded-qs transition-colors flex items-center gap-1.5"
               :class="showAnswers
                 ? 'bg-qs-danger/20 text-qs-danger border border-qs-danger/30'
                 : 'bg-qs-success/20 text-qs-success border border-qs-success/30'"
               @click="showAnswers = !showAnswers"
-            >{{ showAnswers ? '🙈 ซ่อนเฉลย' : '👁️ แสดงเฉลย' }}</button>
+            >
+              <PhEyeSlash v-if="showAnswers" :size="13" weight="duotone" aria-hidden="true" />
+              <PhEye      v-else             :size="13" weight="duotone" aria-hidden="true" />
+              {{ showAnswers ? 'ซ่อนเฉลย' : 'แสดงเฉลย' }}
+            </button>
             <button class="text-xs text-qs-primary hover:underline" @click="showAllPreview = !showAllPreview">
               {{ showAllPreview ? 'ย่อลง' : `ดูทั้งหมด ${parsedQuestions.length} ข้อ` }}
             </button>
@@ -320,19 +328,29 @@
       </div>
 
       <div class="flex gap-3">
-        <button class="btn-secondary" @click="currentStep = 1">← แก้ไข JSON</button>
+        <button class="btn-ghost gap-1" @click="currentStep = 1">
+          <PhArrowLeft :size="14" weight="bold" aria-hidden="true" />
+          แก้ไข JSON
+        </button>
         <button
-          class="btn-gold flex-1 py-3 text-base"
+          class="btn-gold flex-1 py-3 text-base gap-2"
           :disabled="!setTitle.trim() || quizStore.loading"
           @click="doImport"
         >
-          <span v-if="quizStore.loading">⏳ กำลัง Import...</span>
-          <span v-else>🎮 Import & เล่นเลย!</span>
+          <span v-if="quizStore.loading" class="inline-flex items-center gap-2">
+            <span class="w-4 h-4 border-2 border-gray-900/30 border-t-gray-900 rounded-full animate-spin" aria-hidden="true"></span>
+            กำลัง Import...
+          </span>
+          <template v-else>
+            <PhGameController :size="18" weight="duotone" aria-hidden="true" />
+            Import &amp; เล่นเลย!
+          </template>
         </button>
       </div>
 
-      <div v-if="importError" class="p-3 rounded-qs bg-red-900/20 border border-qs-danger text-qs-danger text-sm">
-        ❌ {{ importError }}
+      <div v-if="importError" class="p-3 rounded-qs bg-red-900/20 border border-qs-danger/40 text-qs-danger text-sm flex items-start gap-2">
+        <PhXCircle :size="16" weight="fill" class="flex-shrink-0 mt-0.5" aria-hidden="true" />
+        {{ importError }}
       </div>
     </div>
 
@@ -343,6 +361,13 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuizStore } from '@/stores/quizStore'
+import StepIndicator from '@/components/ui/StepIndicator.vue'
+import {
+  PhRobot, PhSparkle, PhFolder, PhLightbulb,
+  PhArrowRight, PhArrowLeft, PhArrowSquareOut,
+  PhEye, PhEyeSlash, PhCopy, PhCheckCircle, PhXCircle,
+  PhMagnifyingGlass, PhGameController,
+} from '@phosphor-icons/vue'
 
 const router    = useRouter()
 const quizStore = useQuizStore()

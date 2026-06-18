@@ -1,21 +1,30 @@
 <template>
-  <div class="max-w-4xl mx-auto px-4 py-12">
+  <div class="max-w-4xl mx-auto px-4 py-10">
 
     <!-- Header -->
-    <div class="flex items-center gap-4 mb-10">
-      <button class="btn-secondary px-3 py-2 text-sm" @click="$router.push({ name: 'quiz-manage' })">
-        ← กลับ
+    <div class="flex items-center gap-4 mb-8">
+      <button class="btn-ghost px-3 py-2 text-sm gap-1" @click="$router.push({ name: 'quiz-manage' })">
+        <PhArrowLeft :size="14" weight="bold" aria-hidden="true" />
+        กลับ
       </button>
       <div class="flex-1">
-        <h1 class="text-2xl font-bold text-qs-text">✏️ แก้ไขชุดข้อสอบ</h1>
+        <div class="flex items-center gap-2">
+          <PhPencilSimple :size="20" weight="bold" class="text-qs-primary" aria-hidden="true" />
+          <h1 class="text-xl font-bold text-qs-text">แก้ไขชุดข้อสอบ</h1>
+        </div>
         <p class="text-qs-muted text-sm mt-0.5">แก้ไขชื่อและรายการข้อสอบ</p>
       </div>
     </div>
 
     <!-- Loading -->
-    <div v-if="loading" class="text-center py-24 text-qs-muted">
-      <div class="text-4xl mb-4 animate-pulse">✏️</div>
-      กำลังโหลด...
+    <div v-if="loading" class="space-y-3">
+      <div v-for="n in 3" :key="n" class="card p-5 animate-pulse flex gap-4">
+        <div class="w-12 h-12 rounded-qs bg-qs-border flex-shrink-0"></div>
+        <div class="flex-1 space-y-2">
+          <div class="h-4 bg-qs-border rounded w-2/3"></div>
+          <div class="h-3 bg-qs-border rounded w-1/3"></div>
+        </div>
+      </div>
     </div>
 
     <!-- Not found -->
@@ -31,28 +40,33 @@
         <h2 class="font-bold text-qs-text mb-4">ข้อมูลชุดข้อสอบ</h2>
         <div class="flex gap-3 flex-wrap">
           <div class="flex-1 min-w-48">
-            <label class="block text-xs text-qs-muted mb-1.5">ชื่อชุดข้อสอบ</label>
+            <label class="input-label" for="edit-title">ชื่อชุดข้อสอบ</label>
             <input
+              id="edit-title"
               v-model="editTitle"
               type="text"
               maxlength="60"
-              class="w-full px-4 py-2.5 bg-qs-surface border rounded-qs text-qs-text text-sm focus:outline-none focus:border-qs-primary transition-colors"
-              :class="titleDirty ? 'border-qs-primary' : 'border-qs-border'"
+              class="input text-sm"
+              :class="titleDirty ? 'border-qs-primary' : ''"
             />
           </div>
           <div class="flex flex-col justify-end">
             <button
-              class="btn-primary px-5 py-2.5 text-sm"
+              class="btn-primary px-5 py-2.5 text-sm gap-1"
               :disabled="!titleDirty || quizStore.loading"
               @click="saveTitle"
             >
-              {{ quizStore.loading ? '...' : '💾 บันทึก' }}
+              <PhFloppyDisk :size="14" weight="bold" aria-hidden="true" />
+              {{ quizStore.loading ? '...' : 'บันทึก' }}
             </button>
           </div>
         </div>
 
         <div class="flex items-center gap-4 mt-4 pt-4 border-t border-qs-border text-sm text-qs-muted">
-          <span>📝 {{ currentSet.questions?.length ?? 0 }} ข้อ</span>
+          <span class="flex items-center gap-1">
+            <PhListBullets :size="14" weight="bold" aria-hidden="true" />
+            {{ currentSet.questions?.length ?? 0 }} ข้อ
+          </span>
           <label class="flex items-center gap-2 cursor-pointer select-none">
             <div
               class="w-10 h-5 rounded-full relative transition-colors duration-200"
@@ -65,7 +79,7 @@
               ></div>
             </div>
             <span :class="currentSet.is_public ? 'text-qs-primary' : ''">
-              {{ currentSet.is_public ? '🌐 สาธารณะ' : '🔒 ส่วนตัว' }}
+              {{ currentSet.is_public ? 'สาธารณะ' : 'ส่วนตัว' }}
             </span>
           </label>
         </div>
@@ -78,17 +92,20 @@
           <div class="flex gap-2">
             <select
               v-model="filterStage"
-              class="text-xs px-3 py-1.5 bg-qs-surface border border-qs-border rounded-qs text-qs-muted focus:outline-none"
+              class="input text-xs py-1.5 px-3 w-auto"
             >
               <option value="all">ทุกด่าน</option>
-              <option v-for="s in 5" :key="s" :value="s">ด่าน {{ s }} {{ stageEmoji[s] }}</option>
+              <option v-for="s in 5" :key="s" :value="s">ด่าน {{ s }}</option>
             </select>
-            <input
-              v-model="searchQ"
-              type="text"
-              placeholder="ค้นหาข้อสอบ..."
-              class="text-xs px-3 py-1.5 bg-qs-surface border border-qs-border rounded-qs text-qs-text placeholder-qs-muted focus:outline-none focus:border-qs-primary w-36"
-            />
+            <div class="input-group">
+              <PhMagnifyingGlass :size="14" class="input-icon" aria-hidden="true" />
+              <input
+                v-model="searchQ"
+                type="text"
+                placeholder="ค้นหา..."
+                class="input text-xs py-1.5 w-36"
+              />
+            </div>
           </div>
         </div>
 
@@ -110,7 +127,7 @@
                 class="text-xs px-2 py-0.5 rounded-full flex-shrink-0"
                 :class="stageBadgeClass(q.stage)"
               >
-                {{ stageEmoji[q.stage] }}{{ q.stage }}
+                {{ stageLabel[q.stage] ?? 'S?' }}
               </span>
               <span
                 class="text-xs px-2 py-0.5 rounded-full flex-shrink-0"
@@ -120,7 +137,8 @@
               </span>
               <p class="text-sm text-qs-text flex-1 truncate">{{ q.question_text }}</p>
               <span class="text-qs-muted text-xs flex-shrink-0">
-                {{ expandedIdx === realIdx.original ? '▲' : '▼' }}
+                <PhCaretUp   v-if="expandedIdx === realIdx.original" :size="12" weight="bold" aria-hidden="true" />
+                <PhCaretDown v-else                                  :size="12" weight="bold" aria-hidden="true" />
               </span>
             </div>
 
@@ -143,33 +161,41 @@
                       <span class="font-bold mr-1">{{ ['A','B','C','D'][oi] }}.</span>{{ opt }}
                     </div>
                   </div>
-                  <p v-if="q.explanation" class="text-xs text-qs-muted">💡 {{ q.explanation }}</p>
+                  <p v-if="q.explanation" class="text-xs text-qs-muted flex items-start gap-1">
+                    <PhLightbulb :size="12" weight="duotone" class="text-qs-warning flex-shrink-0 mt-0.5" aria-hidden="true" />
+                    {{ q.explanation }}
+                  </p>
                   <div class="flex gap-2 pt-1">
-                    <button class="btn-secondary text-xs px-4 py-1.5" @click="startEdit(realIdx.original, q)">✏️ แก้ไข</button>
+                    <button class="btn-ghost text-xs px-4 py-1.5 gap-1" @click="startEdit(realIdx.original, q)">
+                      <PhPencilSimple :size="12" weight="bold" aria-hidden="true" />
+                      แก้ไข
+                    </button>
                     <button
-                      class="btn-secondary text-xs px-4 py-1.5 text-qs-danger hover:border-qs-danger"
+                      class="btn-ghost text-xs px-4 py-1.5 gap-1 text-qs-danger hover:border-qs-danger"
                       :disabled="deletingQIdx === realIdx.original"
                       @click="confirmDeleteQ(realIdx.original)"
                     >
-                      {{ deletingQIdx === realIdx.original ? '...' : '🗑️ ลบข้อนี้' }}
+                      <PhTrash :size="12" weight="bold" aria-hidden="true" />
+                      {{ deletingQIdx === realIdx.original ? '...' : 'ลบข้อนี้' }}
                     </button>
                   </div>
                 </div>
 
-                <div v-else class="space-y-3">
+                  <div v-else class="space-y-3">
                   <!-- Edit mode -->
                   <div>
-                    <label class="block text-xs text-qs-muted mb-1">คำถาม</label>
+                    <label class="input-label" :for="'edit-q-' + realIdx.original">คำถาม</label>
                     <textarea
+                      :id="'edit-q-' + realIdx.original"
                       v-model="editForm.question_text"
                       rows="2"
-                      class="w-full px-3 py-2 bg-qs-bg border border-qs-border rounded-qs text-sm text-qs-text focus:outline-none focus:border-qs-primary resize-none"
+                      class="input text-sm resize-none"
                     ></textarea>
                   </div>
 
                   <div class="grid grid-cols-2 gap-2">
                     <div v-for="(_, oi) in 4" :key="oi">
-                      <label class="block text-xs text-qs-muted mb-1 flex items-center gap-1.5">
+                      <label class="flex items-center gap-1.5 text-xs text-qs-muted mb-1">
                         <input
                           type="radio"
                           :value="oi"
@@ -177,27 +203,27 @@
                           class="accent-qs-success"
                         />
                         {{ ['A','B','C','D'][oi] }}
-                        <span v-if="oi === editForm.correct_index" class="text-qs-success text-xs">(ถูก)</span>
+                        <span v-if="oi === editForm.correct_index" class="text-qs-success">(ถูก)</span>
                       </label>
                       <input
                         v-model="editForm.options[oi]"
                         type="text"
-                        class="w-full px-3 py-1.5 bg-qs-bg border text-xs text-qs-text rounded-[8px] focus:outline-none focus:border-qs-primary transition-colors"
-                        :class="oi === editForm.correct_index ? 'border-qs-success' : 'border-qs-border'"
+                        class="input text-xs py-1.5"
+                        :class="oi === editForm.correct_index ? 'border-qs-success' : ''"
                       />
                     </div>
                   </div>
 
                   <div class="grid grid-cols-2 gap-3">
                     <div>
-                      <label class="block text-xs text-qs-muted mb-1">ด่าน</label>
-                      <select v-model="editForm.stage" class="w-full px-3 py-1.5 bg-qs-bg border border-qs-border rounded-qs text-xs text-qs-text focus:outline-none">
-                        <option v-for="s in 5" :key="s" :value="s">{{ stageEmoji[s] }} ด่าน {{ s }}</option>
+                      <label class="input-label">ด่าน</label>
+                      <select v-model="editForm.stage" class="input text-xs py-1.5">
+                        <option v-for="s in 5" :key="s" :value="s">ด่าน {{ s }}</option>
                       </select>
                     </div>
                     <div>
-                      <label class="block text-xs text-qs-muted mb-1">ระดับความยาก</label>
-                      <select v-model="editForm.difficulty" class="w-full px-3 py-1.5 bg-qs-bg border border-qs-border rounded-qs text-xs text-qs-text focus:outline-none">
+                      <label class="input-label">ความยาก</label>
+                      <select v-model="editForm.difficulty" class="input text-xs py-1.5">
                         <option value="easy">Easy</option>
                         <option value="normal">Normal</option>
                         <option value="hard">Hard</option>
@@ -206,22 +232,24 @@
                   </div>
 
                   <div>
-                    <label class="block text-xs text-qs-muted mb-1">คำอธิบายเฉลย (optional)</label>
+                    <label class="input-label">คำอธิบายเฉลย <span class="text-qs-muted font-normal normal-case">(optional)</span></label>
                     <input
                       v-model="editForm.explanation"
                       type="text"
-                      class="w-full px-3 py-1.5 bg-qs-bg border border-qs-border rounded-qs text-xs text-qs-text focus:outline-none focus:border-qs-primary"
+                      class="input text-xs py-1.5"
+                      placeholder="อธิบายว่าเหตุใดคำตอบนี้ถึงถูก"
                     />
                   </div>
 
                   <div class="flex gap-2 pt-1">
-                    <button class="btn-secondary text-xs px-4 py-1.5" @click="cancelEdit">ยกเลิก</button>
+                    <button class="btn-ghost text-xs px-4 py-1.5" @click="cancelEdit">ยกเลิก</button>
                     <button
-                      class="btn-primary text-xs px-4 py-1.5"
+                      class="btn-primary text-xs px-4 py-1.5 gap-1"
                       :disabled="quizStore.loading"
                       @click="saveQuestion(realIdx.original)"
                     >
-                      {{ quizStore.loading ? '...' : '💾 บันทึก' }}
+                      <PhFloppyDisk :size="12" weight="bold" aria-hidden="true" />
+                      {{ quizStore.loading ? '...' : 'บันทึก' }}
                     </button>
                   </div>
                 </div>
@@ -238,38 +266,17 @@
 
     </template>
 
-    <!-- Delete question confirm modal -->
-    <Transition name="modal">
-      <div
-        v-if="deleteQTarget !== null"
-        class="fixed inset-0 z-50 flex items-center justify-center p-4"
-        @click.self="deleteQTarget = null"
-      >
-        <div class="absolute inset-0 bg-black/70 backdrop-blur-sm"></div>
-        <div class="relative card p-8 max-w-sm w-full animate-bounce-in">
-          <div class="text-3xl text-center mb-3">🗑️</div>
-          <h2 class="text-lg font-bold text-qs-text text-center mb-2">ลบข้อสอบข้อนี้?</h2>
-          <p class="text-qs-danger text-xs text-center mb-6">ไม่สามารถกู้คืนได้</p>
-          <div class="flex gap-3">
-            <button class="btn-secondary flex-1" @click="deleteQTarget = null">ยกเลิก</button>
-            <button class="btn-danger flex-1" :disabled="quizStore.loading" @click="executeDeleteQ">
-              {{ quizStore.loading ? '...' : 'ลบ' }}
-            </button>
-          </div>
-        </div>
-      </div>
-    </Transition>
-
-    <!-- Toast -->
-    <Transition name="toast">
-      <div
-        v-if="toastMsg"
-        class="fixed bottom-6 right-6 z-50 card px-5 py-3 text-sm flex items-center gap-3 shadow-lg"
-        :class="toastType === 'error' ? 'border-qs-danger text-qs-danger' : 'border-qs-success text-qs-success'"
-      >
-        {{ toastType === 'error' ? '❌' : '✅' }} {{ toastMsg }}
-      </div>
-    </Transition>
+    <!-- ConfirmDialog for delete question -->
+    <ConfirmDialog
+      v-model="showDeleteQDialog"
+      title="ลบข้อสอบข้อนี้?"
+      message="ไม่สามารถกู้คืนได้"
+      confirm="ลบ"
+      cancel="ยกเลิก"
+      :danger="true"
+      @confirm="executeDeleteQ"
+      @cancel="showDeleteQDialog = false"
+    />
 
   </div>
 </template>
@@ -278,23 +285,28 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useQuizStore } from '@/stores/quizStore'
+import { useToast } from '@/composables/useToast'
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
+import {
+  PhArrowLeft, PhPencilSimple, PhFloppyDisk, PhListBullets,
+  PhMagnifyingGlass, PhTrash, PhCaretUp, PhCaretDown, PhLightbulb,
+} from '@phosphor-icons/vue'
 
 const route     = useRoute()
 const quizStore = useQuizStore()
+const { toast } = useToast()
 
-const loading      = ref(true)
-const currentSet   = ref(null)
-const editTitle    = ref('')
-const titleDirty   = computed(() => editTitle.value !== currentSet.value?.title)
-const expandedIdx  = ref(null)
-const editingIdx   = ref(null)
-const deletingQIdx = ref(null)
-const deleteQTarget = ref(null)
-const filterStage  = ref('all')
-const searchQ      = ref('')
-const toastMsg     = ref('')
-const toastType    = ref('success')
-let toastTimer     = null
+const loading         = ref(true)
+const currentSet      = ref(null)
+const editTitle       = ref('')
+const titleDirty      = computed(() => editTitle.value !== currentSet.value?.title)
+const expandedIdx     = ref(null)
+const editingIdx      = ref(null)
+const deletingQIdx    = ref(null)
+const deleteQTarget   = ref(null)
+const showDeleteQDialog = ref(false)
+const filterStage     = ref('all')
+const searchQ         = ref('')
 
 const editForm = ref({
   question_text: '',
@@ -305,7 +317,8 @@ const editForm = ref({
   explanation: '',
 })
 
-const stageEmoji = { 1: '🟢', 2: '👺', 3: '👹', 4: '🧙', 5: '👿' }
+// Stage number badge label (no emoji)
+const stageLabel = { 1: 'S1', 2: 'S2', 3: 'S3', 4: 'S4', 5: 'S5' }
 
 // Filtered questions — keep original index for store operations
 const filteredQuestions = computed(() => {
@@ -340,10 +353,8 @@ function diffBadgeClass(diff) {
 }
 
 function showToast(msg, type = 'success') {
-  clearTimeout(toastTimer)
-  toastMsg.value = msg
-  toastType.value = type
-  toastTimer = setTimeout(() => { toastMsg.value = '' }, 3000)
+  if (type === 'error') toast.error(msg)
+  else toast.success(msg)
 }
 
 function toggleExpand(idx) {
@@ -427,11 +438,14 @@ async function saveQuestion(idx) {
 }
 
 function confirmDeleteQ(idx) {
-  deleteQTarget.value = idx
+  deleteQTarget.value     = idx
+  showDeleteQDialog.value = true
 }
 
 async function executeDeleteQ() {
+  showDeleteQDialog.value = false
   const idx = deleteQTarget.value
+  if (idx === null || idx === undefined) return
   deletingQIdx.value = idx
   const ok = await quizStore.deleteQuestion(route.params.id, idx)
   deletingQIdx.value = null

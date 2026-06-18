@@ -17,12 +17,12 @@ const PVP_BG_PALETTES = {
 }
 
 export const PVP_BG_OPTIONS = [
-  { id: 'arena',     label: '⚔️ Arena',     desc: 'สนามประลอง' },
-  { id: 'grassland', label: '🌿 Grassland', desc: 'ทุ่งหญ้า' },
-  { id: 'forest',    label: '🌲 Forest',    desc: 'ป่าทึบ' },
-  { id: 'cave',      label: '🪨 Cave',      desc: 'ถ้ำมืด' },
-  { id: 'tower',     label: '🏰 Tower',     desc: 'หอคอยมืด' },
-  { id: 'throne',    label: '👑 Throne',    desc: 'ห้องบัลลังก์' },
+  { id: 'arena',     label: 'Arena',     desc: 'สนามประลอง' },
+  { id: 'grassland', label: 'Grassland', desc: 'ทุ่งหญ้า' },
+  { id: 'forest',    label: 'Forest',    desc: 'ป่าทึบ' },
+  { id: 'cave',      label: 'Cave',      desc: 'ถ้ำมืด' },
+  { id: 'tower',     label: 'Tower',     desc: 'หอคอยมืด' },
+  { id: 'throne',    label: 'Throne',    desc: 'ห้องบัลลังก์' },
 ]
 
 export class PvPScene extends Phaser.Scene {

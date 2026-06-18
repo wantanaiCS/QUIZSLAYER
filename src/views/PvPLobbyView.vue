@@ -1,31 +1,44 @@
 <template>
-  <div class="max-w-lg mx-auto px-4 py-8">
+  <div class="max-w-lg mx-auto px-4 py-8 relative z-10">
     <div class="text-center mb-8">
-      <h1 class="text-2xl font-bold text-qs-text mb-1">⚔️ PvP Battle</h1>
+      <div class="inline-flex items-center justify-center w-14 h-14 rounded-qs mb-4"
+           style="background: linear-gradient(135deg, #ff4757, #ff6b6b);">
+        <PhUsersThree :size="28" weight="duotone" class="text-white" aria-hidden="true" />
+      </div>
+      <h1 class="text-2xl font-bold text-qs-text mb-1">PvP Battle</h1>
       <p class="text-qs-muted text-sm">แข่งตอบคำถามกับเพื่อน คนละเครื่อง</p>
     </div>
 
     <!-- Mode select -->
     <div v-if="mode === 'select'" class="space-y-3 animate-slide-up">
-      <button class="card-hover p-5 w-full text-left flex items-center gap-4" @click="mode = 'create'">
-        <span class="text-3xl">🏠</span>
-        <div>
-          <div class="font-bold text-qs-text">สร้างห้อง</div>
+      <button class="card-hover p-5 w-full text-left flex items-center gap-4 group" @click="mode = 'create'">
+        <div class="w-14 h-14 rounded-qs flex items-center justify-center flex-shrink-0 bg-qs-primary/10 text-qs-primary group-hover:bg-qs-primary/20 group-hover:scale-110 transition-all duration-300">
+          <PhHouse :size="28" weight="duotone" aria-hidden="true" />
+        </div>
+        <div class="flex-1">
+          <div class="font-bold text-qs-text text-base mb-0.5">สร้างห้อง</div>
           <div class="text-qs-muted text-sm">เป็น Host เลือกชุดข้อสอบแล้วแชร์โค้ด</div>
         </div>
+        <PhArrowRight :size="18" weight="bold" class="text-qs-muted group-hover:text-qs-primary transition-colors" aria-hidden="true" />
       </button>
-      <button class="card-hover p-5 w-full text-left flex items-center gap-4" @click="mode = 'join'">
-        <span class="text-3xl">🚪</span>
-        <div>
-          <div class="font-bold text-qs-text">เข้าห้อง</div>
+      <button class="card-hover p-5 w-full text-left flex items-center gap-4 group" @click="mode = 'join'">
+        <div class="w-14 h-14 rounded-qs flex items-center justify-center flex-shrink-0 bg-qs-success/10 text-qs-success group-hover:bg-qs-success/20 group-hover:scale-110 transition-all duration-300">
+          <PhDoorOpen :size="28" weight="duotone" aria-hidden="true" />
+        </div>
+        <div class="flex-1">
+          <div class="font-bold text-qs-text text-base mb-0.5">เข้าห้อง</div>
           <div class="text-qs-muted text-sm">กรอกโค้ด 6 หลักจากเพื่อน</div>
         </div>
+        <PhArrowRight :size="18" weight="bold" class="text-qs-muted group-hover:text-qs-success transition-colors" aria-hidden="true" />
       </button>
     </div>
 
     <!-- Create room -->
     <div v-else-if="mode === 'create'" class="animate-slide-up">
-      <button class="btn-secondary text-xs mb-6" @click="mode = 'select'">← กลับ</button>
+      <button class="btn-ghost text-xs mb-6 gap-1" @click="mode = 'select'">
+        <PhArrowLeft :size="13" weight="bold" aria-hidden="true" />
+        กลับ
+      </button>
 
       <!-- Step 1: เลือก quiz -->
       <div v-if="createStep === 1">
@@ -45,11 +58,14 @@
               <div class="font-bold text-qs-text text-sm">{{ set.title }}</div>
               <div class="text-qs-muted text-xs">{{ set.questions?.[0]?.count ?? 0 }} ข้อ</div>
             </div>
-            <span v-if="selectedSet?.id === set.id" class="text-qs-primary">✓</span>
+            <span v-if="selectedSet?.id === set.id">
+              <PhCheckCircle :size="18" weight="fill" class="text-qs-primary" aria-hidden="true" />
+            </span>
           </div>
         </div>
-        <button class="btn-primary w-full" :disabled="!selectedSet" @click="createStep = 2">
-          ถัดไป →
+        <button class="btn-primary w-full gap-2" :disabled="!selectedSet" @click="createStep = 2">
+          ถัดไป
+          <PhArrowRight :size="15" weight="bold" aria-hidden="true" />
         </button>
       </div>
 
@@ -68,7 +84,7 @@
           </button>
         </div>
 
-        <h2 class="font-bold text-qs-text mb-3">🌄 พื้นหลัง</h2>
+        <h2 class="font-bold text-qs-text mb-3">พื้นหลัง</h2>
         <div class="grid grid-cols-3 gap-2 mb-4">
           <button
             v-for="bg in bgOptions"
@@ -79,8 +95,14 @@
               : 'border-qs-border bg-qs-surface opacity-70 hover:opacity-100'"
             @click="selectedBg = bg.id"
           >
-            <div class="text-xl">{{ bg.label.split(' ')[0] }}</div>
-            <div class="text-[10px] text-qs-muted mt-0.5">{{ bg.desc }}</div>
+            <div class="flex items-center justify-center mb-1">
+              <component :is="bgIcons[bg.id]" :size="20" weight="duotone"
+                :class="selectedBg === bg.id ? 'text-qs-primary' : 'text-qs-muted'"
+                aria-hidden="true"
+              />
+            </div>
+            <div class="text-[10px] font-semibold" :class="selectedBg === bg.id ? 'text-qs-text' : 'text-qs-muted'">{{ bg.label }}</div>
+            <div class="text-[9px] text-qs-muted mt-0.5">{{ bg.desc }}</div>
           </button>
         </div>
 
@@ -122,55 +144,85 @@
           <span v-if="customTimeActive" class="text-xs text-qs-muted">วินาที</span>
         </div>
 
-        <button class="btn-primary w-full" @click="handleCreate">
+        <button class="btn-primary w-full gap-2" @click="handleCreate">
           <span v-if="pvp.loadingRoom" class="inline-flex items-center gap-2">
-            <span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+            <span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" aria-hidden="true"></span>
             กำลังสร้างห้อง...
           </span>
-          <span v-else>🏠 สร้างห้อง</span>
+          <template v-else>
+            <PhHouse :size="16" weight="duotone" aria-hidden="true" />
+            สร้างห้อง
+          </template>
         </button>
       </div>
 
       <!-- Waiting room (after created) -->
       <div v-else-if="createStep === 3" class="text-center">
         <div class="card p-6 mb-4">
-          <p class="text-qs-muted text-sm mb-2">โค้ดห้อง</p>
-          <div class="font-pixel text-4xl text-qs-accent tracking-widest mb-3">{{ pvp.roomCode }}</div>
-          <button class="btn-secondary text-xs" @click="copyCode">
-            {{ copied ? '✅ คัดลอกแล้ว' : '📋 คัดลอก' }}
+          <p class="text-qs-muted text-sm mb-3">โค้ดห้อง</p>
+          <!-- 6-box code display -->
+          <div class="flex justify-center gap-2 mb-4" aria-label="Room code">
+            <div
+              v-for="(char, i) in pvp.roomCode.split('')"
+              :key="i"
+              class="w-10 h-12 rounded-qs bg-qs-depth-4 border border-qs-primary/30 flex items-center justify-center font-pixel text-lg text-qs-accent"
+              :class="i === 2 ? 'mr-2' : ''"
+            >{{ char }}</div>
+          </div>
+          <button class="btn-icon mx-auto flex gap-1.5 w-auto px-4" :aria-label="copied ? 'คัดลอกแล้ว' : 'คัดลอกโค้ด'" @click="copyCode">
+            <PhCheckCircle v-if="copied"  :size="15" weight="fill" class="text-qs-success" aria-hidden="true" />
+            <PhCopy        v-else         :size="15" weight="bold" aria-hidden="true" />
+            <span class="text-xs">{{ copied ? 'คัดลอกแล้ว' : 'คัดลอก' }}</span>
           </button>
         </div>
 
-        <div class="card p-4 mb-4">
-          <div class="flex justify-between items-center">
-            <div class="flex items-center gap-2">
-              <div class="w-3 h-3 rounded-full bg-qs-success"></div>
-              <span class="text-sm text-qs-text">{{ pvp.hostName }}</span>
-              <span class="text-xs text-qs-muted">(คุณ)</span>
+        <!-- Player list -->
+        <div class="card p-4 mb-4 space-y-3">
+          <div class="flex items-center gap-3">
+            <AvatarFrame :name="pvp.hostName" color="purple" size="md" :online="true" />
+            <div class="flex-1 text-left">
+              <span class="text-sm text-qs-text font-medium">{{ pvp.hostName }}</span>
+              <span class="ml-2 badge-public text-[10px]">คุณ</span>
             </div>
-            <span class="text-xs" :class="PLAYER_COLORS[pvp.hostColor]?.tailwind">{{ pvp.hostColor }}</span>
+            <PhWifiHigh :size="16" weight="duotone" class="text-qs-success" aria-hidden="true" />
           </div>
-          <div class="flex justify-between items-center mt-2">
-            <div class="flex items-center gap-2">
-              <div class="w-3 h-3 rounded-full" :class="pvp.guestId ? 'bg-qs-success' : 'bg-qs-border animate-pulse'"></div>
-              <span class="text-sm text-qs-muted">{{ pvp.guestId ? pvp.guestName : 'รอเพื่อนเข้าห้อง...' }}</span>
+          <div class="flex items-center gap-3">
+            <AvatarFrame
+              :name="pvp.guestId ? pvp.guestName : '?'"
+              color="fire" size="md"
+              :online="!!pvp.guestId"
+              :class="pvp.guestId ? '' : 'opacity-50'"
+            />
+            <div class="flex-1 text-left">
+              <span class="text-sm" :class="pvp.guestId ? 'text-qs-text font-medium' : 'text-qs-muted'">
+                {{ pvp.guestId ? pvp.guestName : 'รอเพื่อนเข้าห้อง...' }}
+              </span>
             </div>
+            <component :is="pvp.guestId ? PhWifiHigh : PhWifiX"
+              :size="16" weight="duotone"
+              :class="pvp.guestId ? 'text-qs-success' : 'text-qs-muted animate-pulse'"
+              aria-hidden="true"
+            />
           </div>
         </div>
 
         <button
-          class="btn-primary w-full"
+          class="btn-primary w-full gap-2"
           :disabled="!pvp.guestId"
           @click="handleStartGame"
         >
-          {{ pvp.guestId ? '⚔️ เริ่มเกม!' : 'รอเพื่อนเข้าร่วม...' }}
+          <PhSword v-if="pvp.guestId" :size="16" weight="bold" aria-hidden="true" />
+          {{ pvp.guestId ? 'เริ่มเกม!' : 'รอเพื่อนเข้าร่วม...' }}
         </button>
       </div>
     </div>
 
     <!-- Join room -->
     <div v-else-if="mode === 'join'" class="animate-slide-up">
-      <button class="btn-secondary text-xs mb-6" @click="mode = 'select'">← กลับ</button>
+      <button class="btn-ghost text-xs mb-6 gap-1" @click="mode = 'select'">
+        <PhArrowLeft :size="13" weight="bold" aria-hidden="true" />
+        กลับ
+      </button>
 
       <div v-if="!pvp.roomCode">
         <h2 class="font-bold text-qs-text mb-4">กรอกโค้ดห้อง</h2>
@@ -178,7 +230,7 @@
           v-model="joinCode"
           maxlength="6"
           placeholder="ABC123"
-          class="w-full bg-qs-surface border border-qs-border rounded-qs px-4 py-3 text-center font-pixel text-2xl text-qs-accent tracking-widest mb-4 uppercase focus:outline-none focus:border-qs-primary"
+          class="w-full bg-qs-surface border border-qs-border rounded-qs px-4 py-3 text-center font-pixel text-2xl text-qs-accent tracking-widest mb-4 uppercase focus:outline-none focus:border-qs-primary transition-colors"
           @input="joinCode = joinCode.toUpperCase()"
         />
 
@@ -195,31 +247,49 @@
           </button>
         </div>
 
-        <p v-if="pvp.error" class="text-qs-danger text-sm mb-3 text-center">{{ pvp.error }}</p>
+        <div v-if="pvp.error" class="text-qs-danger text-sm mb-3 text-center flex items-center justify-center gap-2">
+          <PhWarningCircle :size="16" weight="fill" aria-hidden="true" />
+          {{ pvp.error }}
+        </div>
 
         <button
-          class="btn-primary w-full"
+          class="btn-primary w-full gap-2"
           :disabled="joinCode.length < 6 || pvp.loadingRoom"
           @click="handleJoin"
         >
           <span v-if="pvp.loadingRoom" class="inline-flex items-center gap-2">
-            <span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+            <span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" aria-hidden="true"></span>
             กำลังเข้าห้อง...
           </span>
-          <span v-else>🚪 เข้าห้อง</span>
+          <template v-else>
+            <PhDoorOpen :size="16" weight="duotone" aria-hidden="true" />
+            เข้าห้อง
+          </template>
         </button>
       </div>
 
       <!-- Guest waiting room -->
       <div v-else class="text-center">
         <div class="card p-6 mb-4">
-          <p class="text-qs-muted text-sm mb-1">ห้อง</p>
-          <div class="font-pixel text-3xl text-qs-accent tracking-widest">{{ pvp.roomCode }}</div>
+          <p class="text-qs-muted text-sm mb-3">ห้อง</p>
+          <div class="flex justify-center gap-2 mb-2" aria-label="Room code">
+            <div
+              v-for="(char, i) in pvp.roomCode.split('')"
+              :key="i"
+              class="w-10 h-12 rounded-qs bg-qs-depth-4 border border-qs-primary/30 flex items-center justify-center font-pixel text-lg text-qs-accent"
+              :class="i === 2 ? 'mr-2' : ''"
+            >{{ char }}</div>
+          </div>
         </div>
-        <div class="card p-4 mb-4">
-          <div class="flex justify-between">
-            <span class="text-sm text-qs-muted">Host: {{ pvp.hostName }}</span>
-            <span class="text-sm text-qs-muted">คุณ: {{ pvp.guestName }}</span>
+        <div class="card p-4 mb-4 flex justify-between items-center">
+          <div class="flex items-center gap-2">
+            <AvatarFrame :name="pvp.hostName" color="purple" size="sm" />
+            <span class="text-sm text-qs-muted">{{ pvp.hostName }}</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <AvatarFrame :name="pvp.guestName" color="fire" size="sm" />
+            <span class="text-sm text-qs-text font-medium">{{ pvp.guestName }}</span>
+            <span class="badge-public text-[10px]">คุณ</span>
           </div>
         </div>
         <p class="text-qs-muted text-sm animate-pulse">รอ Host เริ่มเกม...</p>
@@ -229,13 +299,27 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePvpStore, PLAYER_COLORS } from '@/stores/pvpStore'
 import { useQuizStore } from '@/stores/quizStore'
 import { useAuthStore } from '@/stores/authStore'
-import { watch } from 'vue'
 import { PVP_BG_OPTIONS } from '@/lib/phaser/PvPScene'
+import AvatarFrame from '@/components/ui/AvatarFrame.vue'
+import {
+  PhUsersThree, PhHouse, PhDoorOpen, PhArrowRight, PhArrowLeft,
+  PhCheckCircle, PhCopy, PhWifiHigh, PhWifiX, PhSword, PhWarningCircle,
+  PhLeaf, PhTree, PhMountains, PhCastleTurret, PhCrown,
+} from '@phosphor-icons/vue'
+
+const bgIcons = {
+  arena:     PhSword,
+  grassland: PhLeaf,
+  forest:    PhTree,
+  cave:      PhMountains,
+  tower:     PhCastleTurret,
+  throne:    PhCrown,
+}
 
 const router    = useRouter()
 const pvp       = usePvpStore()

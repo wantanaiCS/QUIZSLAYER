@@ -1,28 +1,28 @@
 <template>
-  <div class="free-page max-w-2xl mx-auto px-4 py-6">
+  <div class="free-page max-w-2xl mx-auto px-4 py-6 relative z-10">
 
-    <!-- Confirm Dialog Overlay -->
-    <Transition name="fade">
-      <div v-if="showConfirm" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-        <div class="card p-6 max-w-sm w-full text-center animate-slide-up">
-          <div class="text-3xl mb-3">⚠️</div>
-          <h3 class="font-bold text-qs-text mb-2">ออกจากการทำข้อสอบ?</h3>
-          <p class="text-qs-muted text-sm mb-5">ความคืบหน้าและเวลาที่สะสมจะหายไปทั้งหมด</p>
-          <div class="flex gap-3">
-            <button class="btn-secondary flex-1" @click="showConfirm = false">ทำต่อ</button>
-            <button class="btn-danger flex-1" @click="confirmReset">ออกเลย</button>
-          </div>
-        </div>
-      </div>
-    </Transition>
+    <!-- Confirm Dialog (ใช้ ConfirmDialog component แทน inline overlay) -->
+    <ConfirmDialog
+      v-model="showConfirm"
+      title="ออกจากการทำข้อสอบ?"
+      message="ความคืบหน้าและเวลาที่สะสมจะหายไปทั้งหมด"
+      confirm="ออกเลย"
+      cancel="ทำต่อ"
+      :danger="true"
+      @confirm="confirmReset"
+      @cancel="showConfirm = false"
+    />
 
     <!-- Header -->
     <div class="text-center mb-8">
       <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-qs-card border border-green-500/30 text-green-400 text-xs font-semibold mb-4">
-        <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+        <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse" aria-hidden="true"></span>
         Free Mode — ไม่มี Game Over
       </div>
-      <h1 class="text-2xl font-bold text-qs-text mb-1">📖 Free Practice</h1>
+      <h1 class="text-2xl font-bold text-qs-text mb-1 flex items-center justify-center gap-2">
+        <PhBooks :size="24" weight="duotone" class="text-qs-primary" aria-hidden="true" />
+        Free Practice
+      </h1>
       <p class="text-qs-muted text-sm">ทำโจทย์สบาย ๆ ไม่มีเวลา ไม่มีพลังชีวิต</p>
     </div>
 
@@ -37,20 +37,21 @@
 
       <div v-else-if="availableSets.length === 0" class="card p-10 text-center">
         <p class="text-qs-muted mb-4">ยังไม่มีชุดข้อสอบ</p>
-        <router-link to="/generator" class="btn-primary">✨ สร้างชุดข้อสอบ</router-link>
+        <router-link to="/generator" class="btn-primary gap-2">
+          <PhSparkle :size="16" weight="duotone" aria-hidden="true" />
+          สร้างชุดข้อสอบ
+        </router-link>
       </div>
 
       <div v-else>
         <!-- Search box -->
-        <div class="relative mb-3">
-          <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-qs-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-          </svg>
+        <div class="input-group mb-3">
+          <PhMagnifyingGlass :size="14" class="input-icon" aria-hidden="true" />
           <input
             v-model="searchQuery"
             type="text"
             placeholder="ค้นหาชุดข้อสอบ..."
-            class="w-full pl-9 pr-4 py-2.5 bg-qs-surface border border-qs-border rounded-qs text-qs-text placeholder-qs-muted text-sm focus:outline-none focus:border-qs-primary transition-colors"
+            class="input pl-9 text-sm"
           />
         </div>
 
@@ -83,7 +84,9 @@
                 </span>
               </div>
             </div>
-            <div v-if="selectedSet?.id === set.id" class="text-qs-primary text-lg flex-shrink-0">✓</div>
+            <div v-if="selectedSet?.id === set.id" class="flex-shrink-0">
+              <PhCheckCircle :size="18" weight="fill" class="text-qs-primary" aria-hidden="true" />
+            </div>
           </div>
           <p v-if="filteredSets.length === 0" class="text-center text-qs-muted text-sm py-6">ไม่พบชุดข้อสอบที่ค้นหา</p>
         </div>
@@ -99,7 +102,10 @@
             <span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
             กำลังโหลด...
           </span>
-          <span v-else>📖 เริ่มทำโจทย์</span>
+          <span v-else class="inline-flex items-center gap-1.5">
+            <PhBooks :size="15" weight="duotone" aria-hidden="true" />
+            เริ่มทำโจทย์
+          </span>
         </button>
       </div>
     </div>
@@ -114,25 +120,26 @@
             <span class="text-xs text-qs-muted">ข้อที่ {{ currentIndex + 1 }} / {{ questions.length }}</span>
             <!-- Review round badge -->
             <span v-if="isReviewRound" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-qs-warning/20 border border-qs-warning/40 text-qs-warning">
-              🔁 รอบทบทวน {{ skippedQueue.length + (answered.value ? 0 : 1) }} ข้อ
+              <PhArrowsClockwise :size="10" weight="bold" aria-hidden="true" />
+              รอบทบทวน {{ skippedQueue.length + (answered.value ? 0 : 1) }} ข้อ
             </span>
           </div>
           <div class="flex items-center gap-3">
             <!-- Streak -->
             <Transition name="pop">
               <span v-if="streak >= 2" class="inline-flex items-center gap-1 text-xs font-bold text-orange-400 tabular-nums">
-                🔥 {{ streak }} ต่อ!
+                <PhFlame :size="13" weight="fill" aria-hidden="true" />
+                {{ streak }} ต่อ!
               </span>
             </Transition>
             <!-- Timer -->
             <span class="inline-flex items-center gap-1.5 text-xs font-mono font-semibold text-qs-accent tabular-nums">
-              <svg class="w-3 h-3 opacity-70" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5"/><path d="M9.5 2.5h5"/><path d="M12 2.5v2"/>
-              </svg>
+              <PhTimer :size="13" weight="duotone" aria-hidden="true" />
               {{ elapsedFormatted }}
             </span>
-            <span class="text-xs font-bold" :class="scoreColor">
-              ✅ {{ correctCount }} / {{ answeredCount }}
+            <span class="inline-flex items-center gap-1 text-xs font-bold" :class="scoreColor">
+              <PhCheckCircle :size="13" weight="fill" aria-hidden="true" />
+              {{ correctCount }} / {{ answeredCount }}
             </span>
           </div>
         </div>
@@ -143,7 +150,7 @@
 
       <!-- Keyboard hint -->
       <p class="text-[10px] text-qs-muted text-right mb-2 select-none">
-        ⌨️ กด A/B/C/D เลือกคำตอบ · Space/Enter ถัดไป · S ข้ามข้อ (จะกลับมาทบทวน)
+        กด A/B/C/D เลือกคำตอบ · Space/Enter ถัดไป · S ข้ามข้อ (จะกลับมาทบทวน)
       </p>
 
       <!-- Question card -->
@@ -171,32 +178,46 @@
           <div v-if="answered" class="mt-4 p-3 rounded-qs border text-sm"
             :class="isCorrect ? 'border-qs-success/40 bg-green-900/10 text-qs-success' : 'border-qs-danger/40 bg-red-900/10'"
           >
-            <div class="font-bold mb-1">
-              {{ isCorrect ? '✅ ถูกต้อง!' : `❌ ผิด — คำตอบที่ถูก: ${currentQ?.options?.[currentQ?.correct_index]}` }}
+            <div class="font-bold mb-1 flex items-center gap-1.5">
+              <PhCheckCircle v-if="isCorrect"  :size="15" weight="fill" class="text-qs-success" aria-hidden="true" />
+              <PhXCircle     v-else             :size="15" weight="fill" class="text-qs-danger"  aria-hidden="true" />
+              <span :class="isCorrect ? 'text-qs-success' : 'text-qs-danger'">
+                {{ isCorrect ? 'ถูกต้อง!' : `ผิด — คำตอบที่ถูก: ${currentQ?.options?.[currentQ?.correct_index]}` }}
+              </span>
             </div>
-            <div v-if="currentQ?.explanation" class="text-qs-muted text-xs">💡 {{ currentQ.explanation }}</div>
+            <div v-if="currentQ?.explanation" class="text-qs-muted text-xs flex items-start gap-1 mt-1">
+              <PhLightbulb :size="12" weight="duotone" class="text-qs-warning flex-shrink-0 mt-0.5" aria-hidden="true" />
+              {{ currentQ.explanation }}
+            </div>
           </div>
         </Transition>
       </div>
 
       <!-- Actions -->
       <div class="flex gap-3">
-        <button class="btn-secondary flex-shrink-0 text-sm" @click="askConfirmReset">← กลับ</button>
+        <button class="btn-ghost flex-shrink-0 text-sm gap-1" @click="askConfirmReset">
+          <PhArrowLeft :size="14" weight="bold" aria-hidden="true" />
+          กลับ
+        </button>
         <!-- ยังไม่ตอบ: แสดงปุ่ม Skip (เฉพาะรอบแรก) -->
-        <button v-if="!answered && !isReviewRound" class="btn-secondary flex-1 text-sm text-qs-muted" @click="skipQuestion">
-          ⏭️ ข้ามข้อ (ทบทวนทีหลัง)
+        <button v-if="!answered && !isReviewRound" class="btn-ghost flex-1 text-sm text-qs-muted gap-1" @click="skipQuestion">
+          <PhSkipForward :size="14" weight="bold" aria-hidden="true" />
+          ข้ามข้อ (ทบทวนทีหลัง)
         </button>
         <!-- รอบทบทวน: ต้องตอบ ไม่มีปุ่ม skip -->
-        <span v-else-if="!answered && isReviewRound" class="flex-1 text-center text-xs text-qs-muted self-center">
-          🔁 รอบทบทวน — กรุณาตอบข้อนี้
+        <span v-else-if="!answered && isReviewRound" class="flex-1 text-center text-xs text-qs-muted self-center flex items-center justify-center gap-1">
+          <PhArrowsClockwise :size="12" weight="bold" aria-hidden="true" />
+          รอบทบทวน — กรุณาตอบข้อนี้
         </span>
         <!-- ตอบแล้ว ไม่ใช่ข้อสุดท้าย -->
-        <button v-else-if="!isLast" class="btn-primary flex-1 text-sm" @click="nextQuestion">
-          ถัดไป →
+        <button v-else-if="!isLast" class="btn-primary flex-1 text-sm gap-1" @click="nextQuestion">
+          ถัดไป
+          <PhArrowRight :size="14" weight="bold" aria-hidden="true" />
         </button>
         <!-- ตอบแล้ว ข้อสุดท้าย -->
-        <button v-else class="btn-gold flex-1 text-sm" @click="finishQuiz">
-          🏁 ดูผลลัพธ์
+        <button v-else class="btn-gold flex-1 text-sm gap-1" @click="finishQuiz">
+          <PhFlagCheckered :size="14" weight="bold" aria-hidden="true" />
+          ดูผลลัพธ์
         </button>
       </div>
     </div>
@@ -204,7 +225,12 @@
     <!-- Step 3: ผลลัพธ์ -->
     <div v-else-if="step === 'result'" class="animate-slide-up">
       <div class="card p-6 text-center mb-4">
-        <div class="text-5xl mb-3">{{ resultEmoji }}</div>
+        <!-- Result icon (Phosphor แทน emoji) -->
+        <div class="flex justify-center mb-4">
+          <div class="w-16 h-16 rounded-full flex items-center justify-center" :class="resultIconBg">
+            <component :is="resultIcon" :size="36" weight="duotone" :class="resultIconColor" aria-hidden="true" />
+          </div>
+        </div>
         <h2 class="text-xl font-bold text-qs-text mb-1">{{ resultTitle }}</h2>
         <p class="text-qs-muted text-sm mb-5">{{ resultCaption }}</p>
 
@@ -229,14 +255,23 @@
         </div>
 
         <!-- เฉลี่ย/ข้อ -->
-        <p v-if="answeredCount > 0" class="text-xs text-qs-muted mb-5">
-          ⚡ เฉลี่ย <span class="text-qs-text font-semibold">{{ avgSecPerQ }} วิ/ข้อ</span>
-          <span v-if="skippedCount > 0" class="ml-3">⏭️ ข้าม <span class="text-qs-text font-semibold">{{ skippedCount }}</span> ข้อ</span>
+        <p v-if="answeredCount > 0" class="text-xs text-qs-muted mb-5 flex flex-wrap items-center justify-center gap-3">
+          <span class="inline-flex items-center gap-1">
+            <PhLightning :size="12" weight="fill" class="text-qs-accent" aria-hidden="true" />
+            เฉลี่ย <span class="text-qs-text font-semibold ml-1">{{ avgSecPerQ }} วิ/ข้อ</span>
+          </span>
+          <span v-if="skippedCount > 0" class="inline-flex items-center gap-1">
+            <PhSkipForward :size="12" weight="bold" class="text-qs-muted" aria-hidden="true" />
+            ข้าม <span class="text-qs-text font-semibold mx-1">{{ skippedCount }}</span> ข้อ
+          </span>
         </p>
 
         <div class="flex gap-3">
-          <button class="btn-secondary flex-1 text-sm" @click="reset">เลือกชุดใหม่</button>
-          <button class="btn-primary flex-1 text-sm" @click="restartSameSet">เล่นซ้ำ</button>
+          <button class="btn-ghost flex-1 text-sm" @click="reset">เลือกชุดใหม่</button>
+          <button class="btn-primary flex-1 text-sm gap-1" @click="restartSameSet">
+            <PhArrowsClockwise :size="14" weight="bold" aria-hidden="true" />
+            เล่นซ้ำ
+          </button>
         </div>
       </div>
 
@@ -255,12 +290,16 @@
             }"
           >
             <div class="flex items-start gap-2">
-              <span class="flex-shrink-0 font-bold" :class="log.correct ? 'text-qs-success' : log.skipped ? 'text-qs-muted' : 'text-qs-danger'">
-                {{ log.correct ? '✅' : log.skipped ? '⏭️' : '❌' }}
-              </span>
+              <!-- Result icon per log entry -->
+              <PhCheckCircle v-if="log.correct"   :size="15" weight="fill" class="text-qs-success flex-shrink-0 mt-0.5" aria-hidden="true" />
+              <PhSkipForward v-else-if="log.skipped" :size="15" weight="bold" class="text-qs-muted flex-shrink-0 mt-0.5" aria-hidden="true" />
+              <PhXCircle     v-else                :size="15" weight="fill" class="text-qs-danger flex-shrink-0 mt-0.5" aria-hidden="true" />
               <div class="min-w-0 w-full">
                 <p class="text-qs-text leading-snug">{{ i + 1 }}. {{ log.question }}
-                  <span v-if="log.reviewRound" class="ml-1 text-[10px] text-qs-warning font-semibold">🔁 ทบทวน</span>
+                  <span v-if="log.reviewRound" class="ml-1 inline-flex items-center gap-0.5 text-[10px] text-qs-warning font-semibold">
+                    <PhArrowsClockwise :size="9" weight="bold" aria-hidden="true" />
+                    ทบทวน
+                  </span>
                 </p>
                 <div v-if="!log.correct && !log.skipped" class="text-xs text-qs-muted mt-1">
                   ตอบ: <span class="font-semibold">{{ log.chosen_label }}. {{ log.chosen }}</span>
@@ -270,8 +309,9 @@
                   ข้ามข้อ — เฉลย: <span class="text-qs-success font-semibold">{{ log.correct_label }}. {{ log.correct_answer }}</span>
                 </div>
                 <!-- Explanation -->
-                <div v-if="log.explanation && !log.correct" class="text-xs text-qs-muted mt-1.5 pt-1.5 border-t border-qs-border/50">
-                  💡 {{ log.explanation }}
+                <div v-if="log.explanation && !log.correct" class="flex items-start gap-1 text-xs text-qs-muted mt-1.5 pt-1.5 border-t border-qs-border/50">
+                  <PhLightbulb :size="12" weight="duotone" class="text-qs-warning flex-shrink-0 mt-0.5" aria-hidden="true" />
+                  {{ log.explanation }}
                 </div>
               </div>
             </div>
@@ -287,6 +327,13 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useQuizStore } from '@/stores/quizStore'
 import { useAuthStore } from '@/stores/authStore'
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
+import {
+  PhBooks, PhSparkle, PhMagnifyingGlass, PhCheckCircle, PhXCircle,
+  PhArrowLeft, PhArrowRight, PhArrowsClockwise, PhSkipForward,
+  PhFlagCheckered, PhFlame, PhTimer, PhLightbulb, PhLightning,
+  PhTrophy, PhStar, PhThumbsUp,
+} from '@phosphor-icons/vue'
 
 const quizStore = useQuizStore()
 const authStore = useAuthStore()
@@ -386,12 +433,26 @@ const avgSecPerQ = computed(() => {
   if (!answeredCount.value) return 0
   return Math.round(elapsedSeconds.value / answeredCount.value)
 })
-const resultEmoji = computed(() => {
+const resultIcon = computed(() => {
   const p = scorePct.value
-  if (p >= 90) return '🏆'
-  if (p >= 70) return '🎉'
-  if (p >= 50) return '👍'
-  return '📚'
+  if (p >= 90) return PhTrophy
+  if (p >= 70) return PhStar
+  if (p >= 50) return PhThumbsUp
+  return PhBooks
+})
+const resultIconBg = computed(() => {
+  const p = scorePct.value
+  if (p >= 90) return 'bg-yellow-900/30'
+  if (p >= 70) return 'bg-green-900/30'
+  if (p >= 50) return 'bg-blue-900/30'
+  return 'bg-qs-surface'
+})
+const resultIconColor = computed(() => {
+  const p = scorePct.value
+  if (p >= 90) return 'text-qs-gold'
+  if (p >= 70) return 'text-qs-success'
+  if (p >= 50) return 'text-qs-primary'
+  return 'text-qs-muted'
 })
 const resultTitle = computed(() => {
   const p = scorePct.value

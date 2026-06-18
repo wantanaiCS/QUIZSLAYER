@@ -1,13 +1,18 @@
 <template>
-  <div class="battle-page max-w-6xl mx-auto px-4 py-6 md:py-12" :class="{ 'is-playing': step === 3 }">
-    <div v-if="step < 3" class="text-center mb-12">
-      <h1 class="text-3xl font-bold text-qs-text mb-2">⚔️ Battle Arena</h1>
-      <p class="text-qs-muted">เลือกชุดข้อสอบและโหมดความยาก แล้วลงสนาม!</p>
+  <div class="battle-page max-w-6xl mx-auto px-4 py-6 md:py-12 relative z-10" :class="{ 'is-playing': step === 3 }">
+
+    <!-- Step header + indicator -->
+    <div v-if="step < 3" class="text-center mb-10">
+      <div class="flex items-center justify-center gap-2 mb-4">
+        <PhSword :size="22" weight="bold" class="text-qs-primary" aria-hidden="true" />
+        <h1 class="text-2xl font-bold text-qs-text">Battle Arena</h1>
+      </div>
+      <p class="text-qs-muted text-sm mb-6">เลือกชุดข้อสอบและโหมดความยาก แล้วลงสนาม!</p>
+      <StepIndicator :steps="['เลือกชุดข้อสอบ','เลือกความยาก','ต่อสู้!']" :current="step - 1" />
     </div>
 
     <!-- Step 1: Select Quiz Set -->
     <div v-if="step === 1" class="animate-slide-up">
-      <h2 class="text-xl font-bold text-qs-text mb-6">1. เลือกชุดข้อสอบ</h2>
 
       <!-- Loading skeleton -->
       <div v-if="isLoadingSets" class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -17,62 +22,126 @@
         </div>
       </div>
       <div v-else-if="availableSets.length === 0" class="card p-12 text-center">
-        <p class="text-qs-muted mb-4">ยังไม่มีชุดข้อสอบ สร้างชุดแรกก่อนเลย!</p>
+        <PhBooks :size="40" weight="duotone" class="mx-auto mb-4 text-qs-border" aria-hidden="true" />
+        <p class="text-qs-muted mb-6">ยังไม่มีชุดข้อสอบ สร้างชุดแรกก่อนเลย!</p>
         <div class="flex flex-wrap gap-3 justify-center">
-          <router-link to="/generator" class="btn-primary">สร้างชุดข้อสอบ</router-link>
-          <button class="btn-secondary" @click="reloadSets">🔄 โหลดใหม่</button>
+          <router-link to="/generator" class="btn-primary gap-2">
+            <PhRobot :size="16" weight="duotone" aria-hidden="true" />
+            สร้างชุดข้อสอบ
+          </router-link>
+          <button class="btn-ghost gap-2" @click="reloadSets">
+            <PhArrowsClockwise :size="16" weight="bold" aria-hidden="true" />
+            โหลดใหม่
+          </button>
         </div>
       </div>
       <div v-else class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
         <div
           v-for="set in availableSets"
           :key="set.id"
-          class="card-hover p-5 cursor-pointer"
-          :class="{ 'border-qs-primary shadow-qs': selectedSet?.id === set.id }"
+          class="card-quiz"
+          :class="{ 'selected border-qs-primary shadow-qs': selectedSet?.id === set.id }"
           @click="selectedSet = set"
         >
-          <div class="flex items-start justify-between mb-3">
-            <h3 class="font-bold text-qs-text">{{ set.title }}</h3>
-            <span v-if="set.is_public" class="stage-badge bg-green-900/30 text-qs-success text-xs">Public</span>
+          <div class="flex items-start justify-between mb-3 gap-2">
+            <h3 class="font-bold text-qs-text leading-snug">{{ set.title }}</h3>
+            <span v-if="set.is_public" class="badge-public flex-shrink-0">Public</span>
+            <span v-else class="badge-private flex-shrink-0">Private</span>
           </div>
-          <p class="text-qs-muted text-sm">{{ set.questions?.[0]?.count ?? 0 }} ข้อ</p>
+          <div class="flex items-center gap-2 text-sm text-qs-muted">
+            <PhListBullets :size="14" weight="bold" aria-hidden="true" />
+            {{ set.questions?.[0]?.count ?? 0 }} ข้อ
+          </div>
+          <!-- Progress fill bar -->
+          <div class="mt-3 h-0.5 bg-qs-border rounded-full overflow-hidden">
+            <div
+              class="h-full rounded-full transition-all duration-300"
+              style="background: linear-gradient(90deg, #6c63ff, #8b5cf6);"
+              :style="{ width: selectedSet?.id === set.id ? '100%' : '0%' }"
+            ></div>
+          </div>
         </div>
       </div>
 
       <div class="text-center mt-8">
-        <button class="btn-primary px-10" :disabled="!selectedSet" @click="step = 2">
-          ถัดไป →
+        <button class="btn-primary px-10 gap-2" :disabled="!selectedSet" @click="step = 2">
+          ถัดไป
+          <PhArrowRight :size="16" weight="bold" aria-hidden="true" />
         </button>
+      </div>
+
+      <!-- 5 Stages info -->
+      <div class="mt-14 mb-2">
+        <h2 class="text-lg font-bold text-center text-qs-text mb-1">5 ด่าน — 5 มอนสเตอร์</h2>
+        <p class="text-qs-muted text-center text-xs mb-6">แต่ละด่านมีกลไกพิเศษที่ยากขึ้นเรื่อยๆ</p>
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <div
+            v-for="stage in stages"
+            :key="stage.id"
+            class="card p-4 text-center group hover:border-qs-primary/40 transition-colors duration-200 cursor-default"
+          >
+            <div
+              class="w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-2 font-pixel text-xs font-bold text-white"
+              :style="{ background: stage.gradient }"
+              aria-hidden="true"
+            >
+              {{ stage.id }}
+            </div>
+            <div class="text-[10px] font-pixel mb-0.5" :class="stage.color">Stage {{ stage.id }}</div>
+            <div class="font-bold text-qs-text text-xs mb-1.5">{{ stage.name }}</div>
+            <div class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-qs-surface border border-qs-border text-qs-muted">
+              {{ stage.mechanic }}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
     <!-- Step 2: Select Difficulty -->
     <div v-if="step === 2" class="animate-slide-up max-w-lg mx-auto">
-      <h2 class="text-xl font-bold text-qs-text mb-6 text-center">2. เลือกโหมดความยาก</h2>
       <div class="space-y-4 mb-8">
         <div
           v-for="diff in difficulties"
           :key="diff.key"
           class="card-hover p-5 cursor-pointer flex items-center gap-4"
-          :class="{ 'border-qs-primary shadow-qs': selectedDiff === diff.key }"
+          :class="{ 'border-qs-primary shadow-qs ring-1 ring-qs-primary/30': selectedDiff === diff.key }"
           @click="selectedDiff = diff.key"
         >
-          <span class="text-3xl">{{ diff.emoji }}</span>
+          <!-- Difficulty icon -->
+          <div class="w-12 h-12 rounded-qs flex items-center justify-center flex-shrink-0 transition-all duration-200"
+               :class="[
+                 diff.key === 'easy'   ? 'bg-green-900/30 text-qs-success' : '',
+                 diff.key === 'normal' ? 'bg-yellow-900/30 text-qs-warning' : '',
+                 diff.key === 'hard'   ? 'bg-red-900/30 text-qs-danger' : '',
+                 selectedDiff === diff.key ? 'scale-110' : '',
+               ]">
+            <component :is="diff.icon" :size="24" weight="duotone" aria-hidden="true" />
+          </div>
           <div class="flex-1">
             <div class="font-bold text-qs-text mb-1">{{ diff.label }}</div>
             <div class="text-qs-muted text-sm">{{ diff.desc }}</div>
           </div>
-          <div v-if="selectedDiff === diff.key" class="text-qs-primary text-xl">✓</div>
+          <PhCheckCircle
+            v-if="selectedDiff === diff.key"
+            :size="20" weight="fill" class="text-qs-primary flex-shrink-0"
+            aria-hidden="true"
+          />
         </div>
       </div>
       <div class="flex gap-4">
-        <button class="btn-secondary flex-1" @click="step = 1">← กลับ</button>
-        <button class="btn-primary flex-1" :disabled="!selectedDiff || loadingBattle" @click="startBattle">
+        <button class="btn-ghost flex-1 gap-1" @click="step = 1">
+          <PhArrowLeft :size="15" weight="bold" aria-hidden="true" />
+          กลับ
+        </button>
+        <button class="btn-primary flex-1 gap-2" :disabled="!selectedDiff || loadingBattle" @click="startBattle">
           <span v-if="loadingBattle" class="inline-flex items-center gap-2">
-            <span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+            <span class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" aria-hidden="true"></span>
             กำลังโหลด...
           </span>
-          <span v-else>⚔️ เริ่มต่อสู้!</span>
+          <template v-else>
+            <PhSword :size="16" weight="bold" aria-hidden="true" />
+            เริ่มต่อสู้!
+          </template>
         </button>
       </div>
     </div>
@@ -105,34 +174,43 @@
       </div>
 
       <div class="flex flex-wrap justify-between items-center gap-2 mb-3 px-1">
-        <button class="btn-secondary text-xs px-3 py-1.5 flex-shrink-0" @click="step = 1; reset()">← หนี</button>
+        <button class="btn-ghost text-xs px-3 py-1.5 flex-shrink-0 gap-1" @click="step = 1; reset()">
+          <PhArrowLeft :size="13" weight="bold" aria-hidden="true" />
+          หนี
+        </button>
         
         <!-- Stage Mechanic Indicators -->
         <div class="flex flex-wrap items-center gap-1.5 text-xs flex-1 justify-center">
           <!-- Stage 3: Danger Zone Indicator -->
-          <div v-if="battleStore.currentStageId === 3 && battleStore.inDangerZone" 
-               class="px-2 py-1 bg-red-900/30 border border-qs-danger rounded-qs text-qs-danger animate-pulse whitespace-nowrap">
-            ⚠️ Damage ×2
+          <div v-if="battleStore.currentStageId === 3 && battleStore.inDangerZone"
+               class="inline-flex items-center gap-1.5 px-2 py-1 bg-red-900/30 border border-qs-danger rounded-qs text-qs-danger animate-pulse whitespace-nowrap">
+            <PhWarning :size="13" weight="duotone" aria-hidden="true" />
+            Damage ×2
           </div>
 
           <!-- Stage 4: Counter Attack Indicator -->
-          <div v-if="battleStore.currentStageId === 4" class="px-2 py-1 bg-purple-900/30 border border-purple-500 rounded-qs text-purple-300 whitespace-nowrap">
-            🔮 สวนกลับ 40%
+          <div v-if="battleStore.currentStageId === 4"
+               class="inline-flex items-center gap-1.5 px-2 py-1 bg-purple-900/30 border border-purple-500 rounded-qs text-purple-300 whitespace-nowrap">
+            <PhLightning :size="13" weight="duotone" aria-hidden="true" />
+            สวนกลับ 40%
           </div>
           <Transition name="fade-lock">
             <div v-if="battleStore.currentStageId === 4 && battleStore.counterAttackTriggered"
-                 class="px-2 py-1 bg-purple-900/60 border border-purple-400 rounded-qs text-purple-200 font-bold animate-pulse whitespace-nowrap">
-              ⚡ COUNTER!
+                 class="inline-flex items-center gap-1.5 px-2 py-1 bg-purple-900/60 border border-purple-400 rounded-qs text-purple-200 font-bold animate-pulse whitespace-nowrap">
+              <PhLightning :size="13" weight="fill" aria-hidden="true" />
+              COUNTER!
             </div>
           </Transition>
-          
+
           <!-- Stage 5: Boss Mechanic Indicators -->
           <div v-if="battleStore.currentStageId === 5" class="flex items-center gap-1.5 flex-wrap">
-            <div class="px-2 py-1 bg-purple-900/30 border border-purple-500 rounded-qs text-purple-300 whitespace-nowrap">
-              💀 {{ battleStore.bossStageErrors }}/3
+            <div class="inline-flex items-center gap-1.5 px-2 py-1 bg-purple-900/30 border border-purple-500 rounded-qs text-purple-300 whitespace-nowrap">
+              <PhSkull :size="13" weight="duotone" aria-hidden="true" />
+              {{ battleStore.bossStageErrors }}/3
             </div>
-            <div class="px-2 py-1 bg-orange-900/30 border border-orange-500 rounded-qs text-orange-300 whitespace-nowrap">
-              ⏱️ {{ battleStore.effectiveCooldown }}s
+            <div class="inline-flex items-center gap-1.5 px-2 py-1 bg-orange-900/30 border border-orange-500 rounded-qs text-orange-300 whitespace-nowrap">
+              <PhTimer :size="13" weight="duotone" aria-hidden="true" />
+              {{ battleStore.effectiveCooldown }}s
             </div>
           </div>
         </div>
@@ -168,24 +246,38 @@
       <div v-if="battleStore.phase === 'game_over' || battleStore.phase === 'victory'" 
            class="fixed inset-0 z-50 flex items-center justify-center bg-qs-bg/80 backdrop-blur-sm">
         <div class="card p-6 text-center max-w-2xl w-full mx-4 animate-slide-up max-h-[92vh] overflow-y-auto">
-          <div class="text-6xl mb-4 animate-float">{{ battleStore.phase === 'victory' ? '🏆' : '💀' }}</div>
+          <!-- Result icon -->
+          <div class="mb-4">
+            <PhTrophy v-if="battleStore.phase === 'victory'"
+              :size="64" weight="duotone" class="text-qs-gold mx-auto animate-bounce-in"
+              :style="battleStore.phase === 'victory' ? 'filter: drop-shadow(0 0 20px rgba(244,200,66,0.5))' : ''"
+              aria-hidden="true"
+            />
+            <PhSkull v-else :size="64" weight="duotone" class="text-qs-danger mx-auto animate-fade-in" aria-hidden="true" />
+          </div>
           <h2 class="text-2xl font-bold mb-2" :class="battleStore.phase === 'victory' ? 'text-qs-success' : 'text-qs-danger'">
             {{ battleStore.phase === 'victory' ? 'Victory!' : 'Game Over' }}
           </h2>
-          <p class="text-qs-muted mb-5">
-            {{ endCaption }}
-          </p>
+          <p class="text-qs-muted mb-5 text-sm">{{ endCaption }}</p>
+
+          <!-- Stats grid -->
           <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
             <div class="bg-qs-surface border border-qs-border rounded-qs p-3">
-              <div class="text-lg font-bold text-qs-text">{{ battleStore.score }}</div>
+              <div class="text-lg font-bold text-qs-text">
+                <AnimatedCounter :value="battleStore.score" :duration="800" />
+              </div>
               <div class="text-[11px] text-qs-muted">คะแนน</div>
             </div>
             <div class="bg-qs-surface border border-qs-border rounded-qs p-3">
-              <div class="text-lg font-bold text-qs-success">{{ battleStore.totalCorrect }}</div>
+              <div class="text-lg font-bold text-qs-success">
+                <AnimatedCounter :value="battleStore.totalCorrect" />
+              </div>
               <div class="text-[11px] text-qs-muted">ตอบถูก</div>
             </div>
             <div class="bg-qs-surface border border-qs-border rounded-qs p-3">
-              <div class="text-lg font-bold text-qs-danger">{{ wrongAnswers }}</div>
+              <div class="text-lg font-bold text-qs-danger">
+                <AnimatedCounter :value="wrongAnswers" />
+              </div>
               <div class="text-[11px] text-qs-muted">ตอบผิด</div>
             </div>
             <div class="bg-qs-surface border border-qs-border rounded-qs p-3">
@@ -193,12 +285,17 @@
               <div class="text-[11px] text-qs-muted">เวลา</div>
             </div>
             <div class="bg-qs-surface border border-qs-border rounded-qs p-3 col-span-2 md:col-span-1">
-              <div class="text-lg font-bold text-qs-gold">+{{ battleStore.result === 'win' ? battleStore.coinsEarned : 0 }}</div>
+              <div class="text-lg font-bold text-qs-gold flex items-center justify-center gap-1">
+                <PhCoins :size="16" weight="duotone" aria-hidden="true" />
+                <AnimatedCounter :value="battleStore.result === 'win' ? battleStore.coinsEarned : 0" prefix="+" />
+              </div>
               <div class="text-[11px] text-qs-muted">coins</div>
             </div>
           </div>
+
+          <!-- Answer log -->
           <div class="text-left bg-qs-surface border border-qs-border rounded-qs p-4 mb-6">
-            <div class="font-bold text-qs-text mb-3">สรุปคำตอบรอบนี้</div>
+            <div class="font-bold text-qs-text mb-3 text-sm">สรุปคำตอบรอบนี้</div>
             <div class="space-y-2 max-h-56 overflow-y-auto pr-1">
               <div
                 v-for="(answer, index) in battleStore.answerLog"
@@ -207,9 +304,8 @@
                 :class="answer.is_correct ? 'border-qs-success/40 bg-green-900/10' : 'border-qs-danger/40 bg-red-900/10'"
               >
                 <div class="flex items-start gap-2">
-                  <span class="font-bold" :class="answer.is_correct ? 'text-qs-success' : 'text-qs-danger'">
-                    {{ answer.is_correct ? 'ถูก' : 'ผิด' }}
-                  </span>
+                  <PhCheckCircle v-if="answer.is_correct" :size="16" weight="fill" class="text-qs-success flex-shrink-0 mt-0.5" aria-hidden="true" />
+                  <PhXCircle     v-else                   :size="16" weight="fill" class="text-qs-danger flex-shrink-0 mt-0.5" aria-hidden="true" />
                   <div class="flex-1">
                     <div class="text-sm text-qs-text">{{ index + 1 }}. {{ answer.question_text }}</div>
                     <div class="text-xs text-qs-muted mt-1">ตอบ: {{ answer.chosen_answer ?? '-' }}</div>
@@ -222,9 +318,13 @@
               </div>
             </div>
           </div>
+
           <div class="flex gap-4">
-            <button class="btn-secondary flex-1" @click="step = 1; reset()">กลับหน้าเลือก</button>
-            <button class="btn-primary flex-1" @click="startBattle">เล่นซ้ำ</button>
+            <button class="btn-ghost flex-1" @click="step = 1; reset()">กลับหน้าเลือก</button>
+            <button class="btn-primary flex-1 gap-2" @click="startBattle">
+              <PhArrowsClockwise :size="15" weight="bold" aria-hidden="true" />
+              เล่นซ้ำ
+            </button>
           </div>
         </div>
       </div>
@@ -247,11 +347,21 @@ import HPBar from '@/components/battle/HPBar.vue'
 import BarTime from '@/components/battle/BarTime.vue'
 import SkillGauge from '@/components/battle/SkillGauge.vue'
 import QuestionCard from '@/components/battle/QuestionCard.vue'
+import StepIndicator from '@/components/ui/StepIndicator.vue'
+import AnimatedCounter from '@/components/ui/AnimatedCounter.vue'
+import { useToast } from '@/composables/useToast'
+import {
+  PhSword, PhArrowRight, PhArrowLeft, PhArrowsClockwise,
+  PhCheckCircle, PhXCircle, PhWarning, PhLightning, PhSkull,
+  PhTimer, PhTrophy, PhCoins, PhBooks, PhRobot, PhListBullets,
+  PhShieldCheck, PhFlame,
+} from '@phosphor-icons/vue'
 
 const quizStore   = useQuizStore()
 const battleStore = useBattleStore()
 const playerStore = usePlayerStore()
 const authStore   = useAuthStore()
+const { toast }   = useToast()
 
 const step          = ref(1)
 const selectedSet   = ref(null)
@@ -270,11 +380,18 @@ let rageStageIds = new Set()
 let sessionSavedForRun = false
 
 const difficulties = [
-  { key: 'easy',   label: 'Easy',   emoji: '🟢', desc: 'ไม่มี Cooldown, HP เยอะ — เหมาะสำหรับมือใหม่' },
-  { key: 'normal', label: 'Normal', emoji: '🟡', desc: 'Cooldown 10 วิ — โหมดมาตรฐาน' },
-  { key: 'hard',   label: 'Hard',   emoji: '🔴', desc: 'Cooldown 7 วิ, ดาเมจ ×2 — สำหรับสายเดือด' },
+  { key: 'easy',   label: 'Easy',   icon: PhShieldCheck, desc: 'ไม่มี Cooldown, HP เยอะ — เหมาะสำหรับมือใหม่' },
+  { key: 'normal', label: 'Normal', icon: PhSword,        desc: 'Cooldown 10 วิ — โหมดมาตรฐาน' },
+  { key: 'hard',   label: 'Hard',   icon: PhFlame,        desc: 'Cooldown 7 วิ, ดาเมจ ×2 — สำหรับสายเดือด' },
 ]
 
+const stages = [
+  { id: 1, name: 'Slime',     color: 'text-monster-slime',  mechanic: 'Tutorial',        gradient: 'linear-gradient(135deg, #6fcf5a, #43d98f)' },
+  { id: 2, name: 'Goblin',    color: 'text-monster-goblin', mechanic: 'Shuffle Options', gradient: 'linear-gradient(135deg, #8fbc56, #6fcf5a)' },
+  { id: 3, name: 'Orc',       color: 'text-monster-orc',    mechanic: 'Danger Zone',     gradient: 'linear-gradient(135deg, #78909c, #546e7a)' },
+  { id: 4, name: 'Dark Mage', color: 'text-monster-mage',   mechanic: 'Counter Attack',  gradient: 'linear-gradient(135deg, #9c27b0, #6c63ff)' },
+  { id: 5, name: 'Boss',      color: 'text-monster-boss',   mechanic: 'Rage / Decoy',    gradient: 'linear-gradient(135deg, #c62828, #ff4757)' },
+]
 // แสดงชุดข้อสอบ public ทุกชุด + private ของตัวเอง (ไม่ซ้ำ)
 const availableSets = computed(() => {
   const userId = authStore.user?.id
@@ -476,7 +593,7 @@ async function startBattle() {
   loadingBattle.value = false
 
   if (!fullSet || !fullSet.questions?.length) {
-    alert('ไม่สามารถโหลดข้อมูลชุดข้อสอบได้ กรุณาลองใหม่อีกครั้ง')
+    toast.error('ไม่สามารถโหลดข้อมูลชุดข้อสอบได้ กรุณาลองใหม่อีกครั้ง')
     return
   }
   

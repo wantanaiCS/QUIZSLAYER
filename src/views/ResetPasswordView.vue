@@ -49,7 +49,12 @@
       </form>
 
       <div v-else class="text-center py-4">
-        <p class="text-qs-success mb-6">✓ เปลี่ยน Password สำเร็จแล้ว</p>
+        <div class="flex justify-center mb-4">
+          <div class="w-14 h-14 rounded-full flex items-center justify-center bg-green-900/20">
+            <PhCheckCircle :size="28" weight="fill" class="text-qs-success" aria-hidden="true" />
+          </div>
+        </div>
+        <p class="text-qs-success mb-6">เปลี่ยน Password สำเร็จแล้ว</p>
         <router-link to="/login" class="btn-primary px-6 py-2.5">
           เข้าสู่ระบบ
         </router-link>

@@ -1,6 +1,9 @@
 <template>
   <div class="text-center">
-    <div class="text-2xl font-pixel text-qs-accent mb-1">🎁 Lucky Box!</div>
+    <div class="flex items-center justify-center gap-2 mb-1">
+      <PhGift :size="24" weight="duotone" class="text-qs-accent" aria-hidden="true" />
+      <span class="text-2xl font-pixel text-qs-accent">Lucky Box!</span>
+    </div>
     <p class="text-xs text-qs-muted mb-5">เลือก 1 การ์ด — ระวัง! บางใบอาจเป็นกับดัก</p>
 
     <div class="flex justify-center gap-3 mb-4">
@@ -20,17 +23,23 @@
       >
         <!-- Front (hidden) -->
         <div class="card-front">
-          <span class="text-3xl">🎴</span>
+          <PhCards :size="32" weight="duotone" class="text-qs-primary" aria-hidden="true" />
           <span class="text-xs text-qs-muted mt-1">{{ i + 1 }}</span>
         </div>
         <!-- Back (revealed) -->
         <div class="card-back">
-          <span class="text-3xl">{{ card.emoji }}</span>
-          <span class="text-xs font-bold mt-1 leading-tight text-center px-1">{{ card.name }}</span>
-          <span class="text-[10px] mt-0.5 px-1 leading-tight text-center"
-                :class="card.type === 'trap' ? 'text-qs-danger' : 'text-qs-success'">
-            {{ card.type === 'trap' ? '💀 Trap!' : '✅ Good' }}
-          </span>
+          <component :is="getIcon(card.icon)" :size="32" weight="duotone"
+            :class="card.type === 'trap' ? 'text-qs-danger' : 'text-qs-success'"
+            aria-hidden="true"
+          />
+          <span class="text-xs font-bold mt-1 leading-tight text-center px-1 text-qs-text">{{ card.name }}</span>
+          <div class="flex items-center gap-1 mt-0.5">
+            <PhWarning v-if="card.type === 'trap'" :size="10" weight="fill" class="text-qs-danger" aria-hidden="true" />
+            <PhCheckCircle v-else :size="10" weight="fill" class="text-qs-success" aria-hidden="true" />
+            <span class="text-[10px]" :class="card.type === 'trap' ? 'text-qs-danger' : 'text-qs-success'">
+              {{ card.type === 'trap' ? 'Trap!' : 'Good' }}
+            </span>
+          </div>
         </div>
       </button>
     </div>
@@ -43,28 +52,36 @@
              ? 'border-qs-danger bg-red-900/10'
              : 'border-qs-success bg-green-900/10'">
         <div class="flex items-center gap-2 mb-1">
-          <span class="text-xl">{{ cards[pickedIndex]?.emoji }}</span>
+          <component :is="getIcon(cards[pickedIndex]?.icon)" :size="20" weight="duotone"
+            :class="cards[pickedIndex]?.type === 'trap' ? 'text-qs-danger' : 'text-qs-success'"
+            aria-hidden="true"
+          />
           <span class="font-bold text-qs-text text-sm">{{ cards[pickedIndex]?.name }}</span>
-          <span class="ml-auto text-xs px-2 py-0.5 rounded-full"
+          <span class="ml-auto text-xs px-2 py-0.5 rounded-full flex items-center gap-1"
                 :class="cards[pickedIndex]?.type === 'trap'
                   ? 'bg-red-900/40 text-qs-danger'
                   : 'bg-green-900/40 text-qs-success'">
-            {{ cards[pickedIndex]?.type === 'trap' ? '💀 Trap' : '✅ Good' }}
+            <PhWarning v-if="cards[pickedIndex]?.type === 'trap'" :size="11" weight="fill" aria-hidden="true" />
+            <PhCheckCircle v-else :size="11" weight="fill" aria-hidden="true" />
+            {{ cards[pickedIndex]?.type === 'trap' ? 'Trap' : 'Good' }}
           </span>
         </div>
         <p class="text-xs text-qs-muted leading-relaxed">{{ cards[pickedIndex]?.desc }}</p>
         <div class="flex gap-2 mt-3">
-          <button class="btn-secondary text-xs flex-1 py-1.5" @click="cancelPreview">
-            ← เลือกใหม่
+          <button class="btn-ghost text-xs flex-1 py-1.5 gap-1" @click="cancelPreview">
+            <PhArrowLeft :size="12" weight="bold" aria-hidden="true" />
+            เลือกใหม่
           </button>
           <button
-            class="text-xs flex-1 py-1.5 rounded-qs font-bold transition-all"
+            class="text-xs flex-1 py-1.5 rounded-qs font-bold transition-all flex items-center justify-center gap-1"
             :class="cards[pickedIndex]?.type === 'trap'
               ? 'bg-qs-danger/20 border border-qs-danger text-qs-danger hover:bg-qs-danger/30'
               : 'btn-primary'"
             @click="confirmCard"
           >
-            {{ cards[pickedIndex]?.type === 'trap' ? '😬 รับ Trap!' : '✅ รับไอเทม!' }}
+            <PhWarning v-if="cards[pickedIndex]?.type === 'trap'" :size="13" weight="fill" aria-hidden="true" />
+            <PhCheckCircle v-else :size="13" weight="fill" aria-hidden="true" />
+            {{ cards[pickedIndex]?.type === 'trap' ? 'รับ Trap!' : 'รับไอเทม!' }}
           </button>
         </div>
       </div>
@@ -76,6 +93,12 @@
 
 <script setup>
 import { ref } from 'vue'
+import {
+  PhGift, PhCards, PhWarning, PhCheckCircle, PhArrowLeft,
+  PhSkipForward, PhShieldCheck, PhSword, PhLightbulb,
+  PhArrowsClockwise, PhHeart, PhShuffle, PhTarget, PhSnowflake,
+  PhQuestion,
+} from '@phosphor-icons/vue'
 
 const props = defineProps({
   cards:  { type: Array,   default: () => [] },
@@ -83,9 +106,26 @@ const props = defineProps({
 })
 const emit = defineEmits(['pick'])
 
+// Map icon string names from pvpStore to actual component
+const iconComponents = {
+  PhSkipForward:     PhSkipForward,
+  PhShieldCheck:     PhShieldCheck,
+  PhSword:           PhSword,
+  PhLightbulb:       PhLightbulb,
+  PhArrowsClockwise: PhArrowsClockwise,
+  PhHeart:           PhHeart,
+  PhShuffle:         PhShuffle,
+  PhTarget:          PhTarget,
+  PhSnowflake:       PhSnowflake,
+}
+
+function getIcon(name) {
+  return iconComponents[name] ?? PhQuestion
+}
+
 const revealed    = ref([false, false, false])
-const pickedIndex = ref(null)   // index that was tapped — shows description
-const confirmed   = ref(false)  // true after confirm button pressed
+const pickedIndex = ref(null)
+const confirmed   = ref(false)
 
 function previewCard(i) {
   if (props.picked || pickedIndex.value !== null) return
@@ -95,7 +135,6 @@ function previewCard(i) {
 
 function cancelPreview() {
   if (confirmed.value) return
-  // hide the card back again
   revealed.value[pickedIndex.value] = false
   pickedIndex.value = null
 }

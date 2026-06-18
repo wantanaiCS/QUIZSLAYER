@@ -258,10 +258,39 @@ export const useAuthStore = defineStore('auth', () => {
     return !err
   }
 
+  async function updateAvatarGradient(gradient) {
+    if (isMockMode) {
+      writeMockProfile({ ...profile.value, avatar_gradient: gradient })
+      return true
+    }
+    const { error: err } = await supabase
+      .from('profiles')
+      .update({ avatar_gradient: gradient })
+      .eq('id', user.value.id)
+    if (err) return false
+    profile.value = { ...profile.value, avatar_gradient: gradient }
+    return true
+  }
+
+  async function updateTitleBadge(badge) {
+    if (isMockMode) {
+      writeMockProfile({ ...profile.value, title_badge: badge })
+      return true
+    }
+    const { error: err } = await supabase
+      .from('profiles')
+      .update({ title_badge: badge })
+      .eq('id', user.value.id)
+    if (err) return false
+    profile.value = { ...profile.value, title_badge: badge }
+    return true
+  }
+
   return {
     user, profile, initialized, loading, error, notice,
     isLoggedIn, displayName, coins,
     init, fetchProfile, signInWithEmail, signInWithGoogle, signUp, signOut,
     sendPasswordReset, updateUsername, writeMockProfile,
+    updateAvatarGradient, updateTitleBadge,
   }
 })

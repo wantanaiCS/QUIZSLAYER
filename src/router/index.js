@@ -69,6 +69,12 @@ const routes = [
     meta: { title: 'QuizSlayer — Profile', requiresAuth: true },
   },
   {
+    path: '/achievements',
+    name: 'achievements',
+    component: () => import('@/views/AchievementsView.vue'),
+    meta: { title: 'QuizSlayer — Achievements', requiresAuth: true },
+  },
+  {
     path: '/reset-password',
     name: 'reset-password',
     component: () => import('@/views/ResetPasswordView.vue'),

@@ -16,22 +16,22 @@ import { useAuthStore } from '@/stores/authStore'
 
 // ─── Item definitions ──────────────────────────────────────────────────────
 export const PVP_ITEMS = [
-  { id: 'skip',       emoji: '⏭️', name: 'Skip Question',  type: 'good',  desc: 'ข้ามข้อนี้โดยไม่เสีย/ได้ HP' },
-  { id: 'shield',     emoji: '🛡️', name: 'Shield',         type: 'good',  desc: 'บล็อก damage ครั้งถัดไป 1 ครั้ง' },
-  { id: 'power',      emoji: '⚔️', name: 'Power Strike',   type: 'good',  desc: 'ดีล ×2 damage ครั้งถัดไปที่ตอบถูก' },
-  { id: 'reveal',     emoji: '💡', name: 'Reveal Answer',  type: 'good',  desc: 'แสดงเฉลยก่อนตอบ 1 ครั้ง' },
-  { id: 'steal_turn', emoji: '🔄', name: 'Steal Turn',     type: 'good',  desc: 'ดึง turn กลับมาหลังจบข้อนี้' },
-  { id: 'double_hp',  emoji: '💊', name: 'Double HP',      type: 'good',  desc: 'HP +5 ทันที' },
-  { id: 'q_swap',     emoji: '🔀', name: 'Question Swap',  type: 'good',  desc: 'สุ่มข้อคำถามใหม่' },
-  { id: 'bomb',       emoji: '💣', name: 'Bomb',           type: 'trap',  desc: 'โดน 3 HP damage ทันที!' },
-  { id: 'freeze',     emoji: '🧊', name: 'Freeze',         type: 'trap',  desc: 'ตอบไม่ได้ 10 วินาที!' },
+  { id: 'skip',       icon: 'PhSkipForward',    name: 'Skip Question',  type: 'good',  desc: 'ข้ามข้อนี้โดยไม่เสีย/ได้ HP' },
+  { id: 'shield',     icon: 'PhShieldCheck',    name: 'Shield',         type: 'good',  desc: 'บล็อก damage ครั้งถัดไป 1 ครั้ง' },
+  { id: 'power',      icon: 'PhSword',          name: 'Power Strike',   type: 'good',  desc: 'ดีล ×2 damage ครั้งถัดไปที่ตอบถูก' },
+  { id: 'reveal',     icon: 'PhLightbulb',      name: 'Reveal Answer',  type: 'good',  desc: 'แสดงเฉลยก่อนตอบ 1 ครั้ง' },
+  { id: 'steal_turn', icon: 'PhArrowsClockwise',name: 'Steal Turn',     type: 'good',  desc: 'ดึง turn กลับมาหลังจบข้อนี้' },
+  { id: 'double_hp',  icon: 'PhHeart',          name: 'Double HP',      type: 'good',  desc: 'HP +5 ทันที' },
+  { id: 'q_swap',     icon: 'PhShuffle',        name: 'Question Swap',  type: 'good',  desc: 'สุ่มข้อคำถามใหม่' },
+  { id: 'bomb',       icon: 'PhTarget',         name: 'Bomb',           type: 'trap',  desc: 'โดน 3 HP damage ทันที!' },
+  { id: 'freeze',     icon: 'PhSnowflake',      name: 'Freeze',         type: 'trap',  desc: 'ตอบไม่ได้ 10 วินาที!' },
 ]
 
 export const PLAYER_COLORS = {
-  red:    { label: '🔴 Red',    tailwind: 'border-red-500    bg-red-900/20  text-red-400',    tint: 0xff4757 },
-  blue:   { label: '🔵 Blue',   tailwind: 'border-blue-500   bg-blue-900/20 text-blue-400',   tint: 0x4fc3f7 },
-  yellow: { label: '🟡 Yellow', tailwind: 'border-yellow-400 bg-yellow-900/20 text-yellow-400', tint: 0xf4c842 },
-  green:  { label: '🟢 Green',  tailwind: 'border-green-500  bg-green-900/20 text-green-400',  tint: 0x43d98f },
+  red:    { label: 'Red',    tailwind: 'border-red-500    bg-red-900/20  text-red-400',    tint: 0xff4757 },
+  blue:   { label: 'Blue',   tailwind: 'border-blue-500   bg-blue-900/20 text-blue-400',   tint: 0x4fc3f7 },
+  yellow: { label: 'Yellow', tailwind: 'border-yellow-400 bg-yellow-900/20 text-yellow-400', tint: 0xf4c842 },
+  green:  { label: 'Green',  tailwind: 'border-green-500  bg-green-900/20 text-green-400',  tint: 0x43d98f },
 }
 
 const RPS_WIN = { rock: 'scissors', scissors: 'paper', paper: 'rock' }
